@@ -989,85 +989,85 @@ export async function POST(req: Request) {
       }
     };
 
-    // Background processing function that continues even if client disconnects
-    const processOpenAIResponse = async () => {
-      try {
-        console.log(
-          "Starting completion processing with provider:",
-          clientProvider
-        );
-        console.log("Completion params:", {
-          ...completionParams,
-          messages: "REDACTED",
-        });
-        const completion = await openaiClient.chat.completions.create(
-          completionParams
-        );
+    // // Background processing function that continues even if client disconnects
+    // const processOpenAIResponse = async () => {
+    //   try {
+    //     console.log(
+    //       "Starting completion processing with provider:",
+    //       clientProvider
+    //     );
+    //     console.log("Completion params:", {
+    //       ...completionParams,
+    //       messages: "REDACTED",
+    //     });
+    //     const completion = await openaiClient.chat.completions.create(
+    //       completionParams
+    //     );
 
-        let reasoningStarted = false;
-        let reasoningComplete = false;
-        let backgroundResponse = "";
+    //     let reasoningStarted = false;
+    //     let reasoningComplete = false;
+    //     let backgroundResponse = "";
 
-        // @ts-expect-error- OpenRouter plugins affect TypeScript inference but streaming works correctly
-        for await (const chunk of completion) {
-          // Handle different response formats from different providers
-          if (
-            !chunk ||
-            !chunk.choices ||
-            !Array.isArray(chunk.choices) ||
-            chunk.choices.length === 0
-          ) {
-            console.warn(
-              "Invalid chunk format received:",
-              JSON.stringify(chunk)
-            );
-            continue;
-          }
+    //     // @ts-expect-error- OpenRouter plugins affect TypeScript inference but streaming works correctly
+    //     for await (const chunk of completion) {
+    //       // Handle different response formats from different providers
+    //       if (
+    //         !chunk ||
+    //         !chunk.choices ||
+    //         !Array.isArray(chunk.choices) ||
+    //         chunk.choices.length === 0
+    //       ) {
+    //         console.warn(
+    //           "Invalid chunk format received:",
+    //           JSON.stringify(chunk)
+    //         );
+    //         continue;
+    //       }
 
-          const content = chunk.choices[0]?.delta?.content || "";
-          const reasoning =
-            (chunk.choices[0]?.delta as { reasoning?: string })?.reasoning ||
-            "";
+    //       const content = chunk.choices[0]?.delta?.content || "";
+    //       const reasoning =
+    //         (chunk.choices[0]?.delta as { reasoning?: string })?.reasoning ||
+    //         "";
 
-          if (reasoning) {
-            // Start reasoning block if this is the first reasoning chunk
-            if (!reasoningStarted) {
-              const reasoningStart = `\`\`\` think\n`;
-              backgroundResponse += reasoningStart;
-              reasoningStarted = true;
-            }
+    //       if (reasoning) {
+    //         // Start reasoning block if this is the first reasoning chunk
+    //         if (!reasoningStarted) {
+    //           const reasoningStart = `\`\`\` think\n`;
+    //           backgroundResponse += reasoningStart;
+    //           reasoningStarted = true;
+    //         }
 
-            // Add the reasoning chunk to background response
-            backgroundResponse += reasoning;
-          }
+    //         // Add the reasoning chunk to background response
+    //         backgroundResponse += reasoning;
+    //       }
 
-          if (content) {
-            // Close reasoning block if we had reasoning and now we're getting content
-            if (reasoningStarted && !reasoningComplete) {
-              const reasoningEnd = `\n\`\`\`\n\n`;
-              backgroundResponse += reasoningEnd;
-              reasoningComplete = true;
-            }
+    //       if (content) {
+    //         // Close reasoning block if we had reasoning and now we're getting content
+    //         if (reasoningStarted && !reasoningComplete) {
+    //           const reasoningEnd = `\n\`\`\`\n\n`;
+    //           backgroundResponse += reasoningEnd;
+    //           reasoningComplete = true;
+    //         }
 
-            backgroundResponse += content;
-          }
-        }
+    //         backgroundResponse += content;
+    //       }
+    //     }
 
-        console.log(
-          "OpenAI completion processing finished, updating bot response..."
-        );
-        // Always update bot response, regardless of client connection status
-        await updateBotResponse(backgroundResponse);
+    //     console.log(
+    //       "OpenAI completion processing finished, updating bot response..."
+    //     );
+    //     // Always update bot response, regardless of client connection status
+    //     await updateBotResponse(backgroundResponse);
 
-        return backgroundResponse;
-      } catch (error) {
-        console.error("Background OpenAI processing error:", error);
-        throw error;
-      }
-    };
+    //     return backgroundResponse;
+    //   } catch (error) {
+    //     console.error("Background OpenAI processing error:", error);
+    //     throw error;
+    //   }
+    // };
 
-    // Start background processing immediately (runs independently)
-    const backgroundProcessing = processOpenAIResponse();
+    // // Start background processing immediately (runs independently)
+    // const backgroundProcessing = processOpenAIResponse();
 
     // Streaming the Response
     const stream = new ReadableStream({
@@ -1076,9 +1076,6 @@ export async function POST(req: Request) {
           const completion = await openaiClient.chat.completions.create(
             completionParams
           );
-
-          let reasoningStarted = false;
-          let reasoningComplete = false;
 
           // @ts-expect-error- OpenRouter plugins affect TypeScript inference but streaming works correctly
           for await (const chunk of completion) {
@@ -1106,51 +1103,34 @@ export async function POST(req: Request) {
             }
 
             const content = chunk.choices[0]?.delta?.content || "";
-            const reasoning =
-              (chunk.choices[0]?.delta as { reasoning?: string })?.reasoning ||
-              "";
 
-            if (reasoning) {
-              // Start reasoning block if this is the first reasoning chunk
-              if (!reasoningStarted) {
-                const reasoningStart = `\`\`\` think\n`;
-                fullBotResponse += reasoningStart;
-                try {
-                  controller.enqueue(encoder.encode(reasoningStart));
-                } catch {
-                  console.log("Client disconnected during reasoning start");
-                  clientDisconnected = true;
-                  break;
-                }
-                reasoningStarted = true;
-              }
+            // if (reasoning) {
+            //   // Start reasoning block if this is the first reasoning chunk
+            //   if (!reasoningStarted) {
+            //     const reasoningStart = `\`\`\` think\n`;
+            //     fullBotResponse += reasoningStart;
+            //     try {
+            //       controller.enqueue(encoder.encode(reasoningStart));
+            //     } catch {
+            //       console.log("Client disconnected during reasoning start");
+            //       clientDisconnected = true;
+            //       break;
+            //     }
+            //     reasoningStarted = true;
+            //   }
 
-              // Stream the reasoning chunk
-              fullBotResponse += reasoning;
-              try {
-                controller.enqueue(encoder.encode(reasoning));
-              } catch {
-                console.log("Client disconnected during reasoning");
-                clientDisconnected = true;
-                break;
-              }
-            }
+            //   // Stream the reasoning chunk
+            //   fullBotResponse += reasoning;
+            //   try {
+            //     controller.enqueue(encoder.encode(reasoning));
+            //   } catch {
+            //     console.log("Client disconnected during reasoning");
+            //     clientDisconnected = true;
+            //     break;
+            //   }
+            // }
 
             if (content) {
-              // Close reasoning block if we had reasoning and now we're getting content
-              if (reasoningStarted && !reasoningComplete) {
-                const reasoningEnd = `\n\`\`\`\n\n`;
-                fullBotResponse += reasoningEnd;
-                try {
-                  controller.enqueue(encoder.encode(reasoningEnd));
-                } catch {
-                  console.log("Client disconnected during reasoning end");
-                  clientDisconnected = true;
-                  break;
-                }
-                reasoningComplete = true;
-              }
-
               fullBotResponse += content;
               try {
                 controller.enqueue(encoder.encode(content));
@@ -1203,9 +1183,9 @@ export async function POST(req: Request) {
     }
 
     // Ensure background processing continues even if client disconnects
-    backgroundProcessing.catch((error) => {
-      console.error("Background processing failed:", error);
-    });
+    // backgroundProcessing.catch((error) => {
+    //   console.error("Background processing failed:", error);
+    // });
 
     // --- 8. Return the stream ---
     return new Response(stream, {

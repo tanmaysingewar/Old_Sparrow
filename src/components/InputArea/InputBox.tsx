@@ -7,19 +7,19 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { motion } from "framer-motion";
 import {
-  GlobeIcon,
   OctagonPause,
   Send,
-  Crown,
-  ChevronUp,
-  Search,
   Paperclip,
   Loader2,
+  X,
+  MessageSquareMore,
+  Atom,
+  ZapIcon,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import TextInput, { TextInputRef } from "./TextInput";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   // UploadButton,
   // UploadDropzone,
@@ -31,7 +31,8 @@ import {
   generatePermittedFileTypes,
 } from "uploadthing/client";
 import models from "@/support/models";
-import { useUserStore } from "@/store/userStore";
+import PDFIcon from "./assets/pdf";
+import DOCIcon from "./assets/doc";
 
 interface InputBoxProps {
   input: string;
@@ -39,10 +40,7 @@ interface InputBoxProps {
   onSend: (message: string) => void;
   height: number;
   disabled?: boolean;
-  searchEnabled: boolean;
-  onSearchToggle: (enabled: boolean) => void;
   selectedModel: string;
-  onModelChange: (model: string) => void;
   fileUrl: string;
   setFileUrl: (value: string) => void;
   fileType: string;
@@ -63,10 +61,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
     onSend,
     height,
     disabled,
-    searchEnabled,
-    onSearchToggle,
     selectedModel,
-    onModelChange,
     fileUrl,
     setFileUrl,
     setFileType,
@@ -106,36 +101,17 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
     models.find((m) => m.id === selectedModel) || models[0];
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [modelSearch, setModelSearch] = useState("");
   const suggestionsContainerRef = useRef<HTMLDivElement>(null);
   const suggestionItemRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const { user } = useUserStore();
-  const isLoggedIn = user?.emailVerified ? true : false;
-  const hasOpenAIApiKey =
-    typeof window !== "undefined" &&
-    localStorage.getItem("openai_api_key") &&
-    localStorage.getItem("openai_api_key") !== "";
-  const hasOpenRouterApiKey =
-    typeof window !== "undefined" &&
-    localStorage.getItem("openrouter_api_key") &&
-    localStorage.getItem("openrouter_api_key") !== "";
-  const hasAnthropicApiKey =
-    typeof window !== "undefined" &&
-    localStorage.getItem("anthropic_api_key") &&
-    localStorage.getItem("anthropic_api_key") !== "";
-  const hasGoogleApiKey =
-    typeof window !== "undefined" &&
-    localStorage.getItem("google_api_key") &&
-    localStorage.getItem("google_api_key") !== "";
 
-  // Filter models based on search
-  const filteredModels = models.filter(
-    (model) =>
-      model.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
-      model.description.toLowerCase().includes(modelSearch.toLowerCase())
-  );
+  const [fileData, setFileData] = useState<{
+    name: string;
+    type: string;
+    size: number;
+  } | null>(null);
+
+  const [mode, setMode] = useState("auto");
 
   // Auto-scroll selected item into view
   useEffect(() => {
@@ -209,19 +185,6 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
     setSelectedIndex(0);
   }, [input.split(" ").slice(-1)[0]]);
 
-  const handleModelSelect = (modelId: string) => {
-    onModelChange(modelId);
-    setIsPopoverOpen(false);
-    setModelSearch(""); // Clear search when selecting a model
-  };
-
-  // Clear search when popover closes
-  useEffect(() => {
-    if (!isPopoverOpen) {
-      setModelSearch("");
-    }
-  }, [isPopoverOpen]);
-
   // Determine upload route based on model capabilities
   const uploadRoute =
     selectedModelData.imageUpload && !selectedModelData.docsUpload
@@ -253,6 +216,16 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
         setIsUploading(true); // Set loading immediately
         setFileName(acceptedFiles[0].name);
         startUpload(acceptedFiles);
+        setFileData({
+          name: acceptedFiles[0].name,
+          type: acceptedFiles[0].type,
+          size: acceptedFiles[0].size,
+        });
+        console.log({
+          name: acceptedFiles[0].name,
+          type: acceptedFiles[0].type,
+          size: acceptedFiles[0].size,
+        });
       }
     },
     [startUpload]
@@ -279,6 +252,16 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
       );
       setFileName(file.name);
       startUpload([file]);
+      setFileData({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
+      console.log({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
       setFileUrl(file.name);
       setFileType(file.type);
       setFileName(file.name);
@@ -287,7 +270,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
 
   return (
     <div>
-      <div className="max-w-3xl text-base font-sans lg:px-0 w-screen md:rounded-t-3xl px-2 fixed bottom-0  select-none">
+      <div className="max-w-3xl text-base font-sans lg:px-0 w-screen md:rounded-t-3xl px-2 select-none rounded-3xl">
         {filteredSuggestions.length > 0 && (
           <div className="mx-5">
             <div
@@ -313,18 +296,30 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
             </div>
           </div>
         )}
-        <div className="flex flex-col items-center rounded-t-3xl dark:bg-[#303335]/80 bg-neutral-100/70 p-2 w-full backdrop-blur-xs">
+        <div className="flex flex-col items-center rounded-3xl dark:bg-[#363537] bg-neutral-100/70 p-2 w-full backdrop-blur-xs">
           {/* File Content Indicator */}
           {fileUrl && (
-            <div className="w-full mx-3 mb-2">
+            <div className="mx-3 mb-2 w-full">
               <div
-                className={`flex items-center justify-between border rounded-lg px-3 py-2 bg-blue-50 dark:bg-[#344f5a]/30 border-blue-200 dark:border-[#344f5a]`}
+                className={`flex items-start rounded-xl px-3 py-2 bg-[#f3f3f3] dark:bg-[#424143] w-fit`}
               >
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full bg-[#344f5a]`}></div>
-                  <span className={`text-sm text-[#344f5a] dark:text-blue-300`}>
-                    {fileName}
-                  </span>
+                <div className="flex items-center space-x-2 mr-10">
+                  {fileData?.type === "application/pdf" ? (
+                    <PDFIcon className="w-8 h-8" />
+                  ) : (
+                    <DOCIcon className="w-8 h-8" />
+                  )}
+                  <div className="flex flex-col">
+                    <span className={`text-sm text-white dark:text-white`}>
+                      {fileName}
+                    </span>
+                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                      {fileData?.type.split("/")[1].toUpperCase()} -{" "}
+                      {fileData
+                        ? (fileData.size / 1024 / 1024).toFixed(2) + " MB"
+                        : "0 MB"}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
@@ -334,7 +329,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
                   }}
                   className="text-[#7bc2de] dark:text-[#7bc2de] hover:text-[#8fdfff] dark:hover:text-[#8fdfff] text-sm cursor-pointer"
                 >
-                  Remove
+                  <X className="w-4 h-4 text-transparent hover:text-white hover:bg-white/10 rounded-full p-1" />
                 </button>
               </div>
             </div>
@@ -353,151 +348,12 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
             disabled={disabled || isUploading}
           />
           <div className="flex flex-row justify-between w-full mt-0">
-            <div className="flex flex-row mt-2 dark:text-neutral-200 mx-3 justify-center items-center">
-              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger className="cursor-pointer">
-                  <p className="text-[13px] font-medium dark:text-neutral-400 text-neutral-500 mr-3 flex flex-row items-center">
-                    {selectedModelData.name}{" "}
-                    <ChevronUp className="w-4 h-4 ml-1" />
-                  </p>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-80 p-0 dark:bg-neutral-900 bg-white shadow-lg select-none"
-                  align="start"
-                >
-                  <div className="p-2">
-                    {/* Upgrade Section */}
-                    <div className=" p-3 rounded-lg bg-neutral-100 dark:bg-gradient-to-r dark:from-[#131e20] dark:via-[#1c2a31] dark:to-[#1e2c33] border dark:border-[#3d5b6b]">
-                      <h3 className="text-sm font-medium dark:text-white text-gray-900 mb-1">
-                        Self-hosted it on Vercel
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm dark:text-neutral-400 text-neutral-500">
-                          Coming soon
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Search Input */}
-                  <div className="">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 dark:text-neutral-400 text-neutral-500" />
-                      <input
-                        type="text"
-                        placeholder="Search models..."
-                        value={modelSearch}
-                        onChange={(e) => setModelSearch(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2 text-sm bg-transparent focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Model Options - Scrollable Container */}
-                  <div className="overflow-y-auto h-72 p-2 no-scrollbar select-none">
-                    <div className="space-y-1">
-                      {filteredModels.length > 0 ? (
-                        filteredModels.map((model) => {
-                          const Icon = model.icon;
-                          const isSelected = model.id === selectedModel;
-
-                          // Check if user has access to this model
-                          const hasModelAccess =
-                            isLoggedIn ||
-                            !model.premium ||
-                            (hasOpenRouterApiKey &&
-                              model.id !== "openai/gpt-image-1") ||
-                            (hasOpenAIApiKey &&
-                              (model.id.toLowerCase().includes("openai") ||
-                                model.id.toLowerCase().includes("gpt"))) ||
-                            (hasAnthropicApiKey &&
-                              (model.id.toLowerCase().includes("claude") ||
-                                model.id
-                                  .toLowerCase()
-                                  .includes("anthropic"))) ||
-                            (hasGoogleApiKey &&
-                              (model.id.toLowerCase().includes("gemini") ||
-                                model.id.toLowerCase().includes("google")));
-
-                          return (
-                            <div
-                              key={model.id}
-                              className={`flex items-center justify-between p-2 rounded-lg ${
-                                !hasModelAccess
-                                  ? "cursor-not-allowed opacity-60"
-                                  : "cursor-pointer"
-                              } ${
-                                isSelected
-                                  ? "bg-neutral-100 dark:bg-[#1d2b30]/80"
-                                  : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                              }`}
-                              onClick={() =>
-                                hasModelAccess && handleModelSelect(model.id)
-                              }
-                            >
-                              <div className="flex items-center space-x-3">
-                                {Icon ? (
-                                  <Icon className="w-4 h-4 dark:text-neutral-400 text-neutral-600" />
-                                ) : (
-                                  <div className="w-4 h-4 rounded dark:bg-neutral-600 bg-neutral-400"></div>
-                                )}
-                                <div>
-                                  <p className="text-sm font-medium dark:text-white text-gray-900">
-                                    {model.name}
-                                  </p>
-                                  <p className="text-xs dark:text-neutral-400 text-neutral-500">
-                                    {model.description}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex space-x-1">
-                                {isSelected && (
-                                  <div className="w-2 h-2 rounded-full dark:bg-neutral-400 bg-neutral-600"></div>
-                                )}
-                                {!hasModelAccess && (
-                                  <Crown className="w-4 h-4 dark:text-neutral-500 text-neutral-400" />
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="text-center py-4">
-                          <p className="text-sm dark:text-neutral-400 text-neutral-500">
-                            No models found
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
+            <div className="flex flex-row mt-2 dark:text-neutral-200 mx-2 mb-2 justify-center items-center gap-2">
               <div className="mt-0 flex flex-row gap-3">
-                <div
-                  className={`flex flex-row items-center justify-center h-[28px] px-2 rounded-full space-x-1.5 border cursor-pointer  ${
-                    searchEnabled
-                      ? "dark:bg-neutral-100 bg-neutral-300  text-neutral-500 dark:text-neutral-600 border-neutral-300 dark:border-white"
-                      : "dark:bg-transparent bg-neutral-100 text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-400"
-                  }`}
-                  onClick={() => onSearchToggle(!searchEnabled)}
-                >
-                  <GlobeIcon
-                    className={`w-4 h-4 ${
-                      searchEnabled
-                        ? "dark:text-neutral-600 text-neutral-500"
-                        : "dark:text-neutral-400 text-neutral-500"
-                    }`}
-                  />
-                  <p className="text-sm select-none">Search</p>
-                </div>
                 {(selectedModelData.docsUpload ||
                   selectedModelData.imageUpload) && (
                   <div
-                    className={`flex flex-row items-center justify-center h-[28px] px-2 rounded-full space-x-1.5 border cursor-pointer ${
-                      isUploading
-                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
-                        : "bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-400"
-                    }`}
+                    className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
                     {...getRootProps()}
                   >
                     <input
@@ -516,26 +372,59 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
                     />
                     <label
                       htmlFor="file-upload"
-                      className={`flex flex-row items-center space-x-1.5 ${
+                      className={`flex flex-row items-center p-1.5 ${
                         isUploading ? "cursor-wait" : "cursor-pointer"
                       }`}
                     >
                       {isUploading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Paperclip className="w-4 h-4" />
+                        <Paperclip className="w-[18px] h-[18px]" />
                       )}
-                      <p className="text-sm select-none">
-                        {isUploading
-                          ? "Uploading..."
-                          : selectedModelData.imageUpload &&
-                            !selectedModelData.docsUpload
-                          ? "Upload Image"
-                          : "Upload"}
-                      </p>
                     </label>
                   </div>
                 )}
+              </div>
+              <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-full relative w-fit p-[1px]">
+                <motion.div
+                  className="absolute bg-white dark:bg-[#3e3d3e] rounded-full shadow-sm"
+                  initial={false}
+                  animate={{
+                    x: mode === "auto" ? 2 : mode === "chat" ? 37 : 72,
+                    width: 34,
+                    height: 29,
+                    y: 0,
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                  }}
+                />
+                <motion.div
+                  className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                  onClick={() => setMode("auto")}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <ZapIcon className="w-4 h-4" />
+                </motion.div>
+                <motion.div
+                  className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                  onClick={() => setMode("chat")}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <MessageSquareMore className="w-4 h-4" />
+                </motion.div>
+                <motion.div
+                  className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                  onClick={() => setMode("agent")}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <Atom className="w-4 h-4" />
+                </motion.div>
               </div>
             </div>
             <div className="flex flex-row justify-center items-center">

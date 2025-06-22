@@ -19,7 +19,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
 import { CHAT_CACHE_UPDATED_EVENT } from "@/lib/fetchChats";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import BringYourOwnKey from "./BringYourOwnKey";
 
 const pacifico = Pacifico({
   subsets: ["latin"],
@@ -432,16 +431,28 @@ export default function ChatHistoryDesktop({
     !!debouncedSearchTerm;
 
   return (
-    <div className="flex flex-col h-full dark:bg-[#161719] bg-[#f9f9f9] select-none">
+    <div className="flex flex-col h-full dark:bg-[#212122] bg-[#ebebeb] select-none">
       <span className={cn("text-xl text-center mt-5", pacifico.className)}>
         {" "}
         Better Index
       </span>
       <Button
         onClick={handleNewChatClick}
-        className="mx-5 mt-3 cursor-pointer bg-gradient-to-r from-[#2a3f47] via-[#3d5b6b] to-[#2a3f47] hover:from-[#354a52] hover:via-[#4a6b7a] hover:to-[#5a7b8a] text-white border border-[#3d5b6b] hover:border-[#4a6b7a] shadow-lg"
+        className="mx-3 mt-3 cursor-pointer dark:bg-[#323233] bg-white"
+        variant="secondary"
       >
-        <p className="text-[14px] font-semibold">New Chat</p>
+        <p className="text-[14px] font-semibold flex flex-row items-center gap-2">
+          New Task{" "}
+          {/* <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
+            ⌘
+          </span>
+          <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
+            Shift
+          </span>
+          <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
+            O
+          </span> */}
+        </p>
       </Button>
       <div className="flex-shrink-0 text-center mt-5">
         <Input
@@ -458,7 +469,7 @@ export default function ChatHistoryDesktop({
         className="flex-1 overflow-y-auto no-scrollbar h-screen relative"
       >
         {(isLoadingCache || isLoadingProp) && (
-          <div className="flex justify-center items-center py-2 bg-[#161719]/5 backdrop-blur-xs z-10 sticky top-0">
+          <div className="flex justify-center items-center py-2 bg-[#212122]/5 backdrop-blur-xs z-10 sticky top-0">
             <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
           </div>
         )}
@@ -515,9 +526,9 @@ export default function ChatHistoryDesktop({
                     }
                   >
                     <div
-                      className={`hover:bg-neutral-200 dark:hover:bg-[#222325] cursor-pointer rounded-sm p-2 px-3 transition-colors duration-150 group relative ${
+                      className={`hover:bg-neutral-200 dark:hover:bg-[#161618] cursor-pointer rounded-sm p-2 px-3 transition-colors duration-150 group relative ${
                         currentChatId === chat.id
-                          ? "bg-neutral-200 dark:bg-[#222325]"
+                          ? "bg-white dark:bg-[#161618] hover:bg-white"
                           : ""
                       } ${
                         isDeleting || isUpdating
@@ -600,13 +611,13 @@ export default function ChatHistoryDesktop({
                                 })()}
                               </span>
                             </p>
-                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-neutral-200 dark:bg-[#222325] px-1 rounded">
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-neutral-200 dark:bg-[#161618] px-1 rounded">
                               <button
                                 onClick={(e) =>
                                   handleStartEditTitle(chat.id, chat.title, e)
                                 }
                                 disabled={isDeleting}
-                                className="p-1 hover:bg-blue-100 dark:hover:bg-neutral-700 rounded text-neutral-600 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300 flex-shrink-0 cursor-pointer"
+                                className="p-1 hover:bg-blue-100 dark:hover:bg-neutral-600 rounded text-neutral-600 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300 flex-shrink-0 cursor-pointer"
                                 title="Edit title"
                               >
                                 <Edit3 className="h-3 w-3" />
@@ -635,13 +646,13 @@ export default function ChatHistoryDesktop({
           )}
         </div>
       </div>
-      <div className="flex flex-col">
-        <BringYourOwnKey />
+      <div className="flex flex-col border-t border-neutral-200 dark:border-[#323233] ">
+        {/* <BringYourOwnKey /> */}
         {user?.emailVerified === false || !user || isNewUser ? (
           <SignInComponent />
         ) : (
           <div
-            className="flex items-center gap-2 p-3 mx-2 mb-2 mt-2 dark:bg-[#222325] bg-neutral-200 rounded-md cursor-pointer"
+            className="flex items-center gap-2 p-3 mx-2 mb-0 mt-0  rounded-md cursor-pointer"
             onClick={() => {
               setOpenSettings(true);
             }}

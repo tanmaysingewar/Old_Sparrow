@@ -43,7 +43,20 @@ import {
 
 import { Textarea } from "@/components/ui/textarea";
 import models from "@/support/models";
-import HeroSection from "@/components/HeroSection";
+import { Pacifico } from "next/font/google";
+import { Libre_Baskerville } from "next/font/google";
+
+const pacifico = Pacifico({
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
+const libreBaskerville = Libre_Baskerville({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
+// import HeroSection from "@/components/HeroSection";
 // import { Button } from "@/components/ui/button";
 
 interface Message {
@@ -277,9 +290,8 @@ export default function ChatPage({
   >(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const [searchEnabled, setSearchEnabled] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>(
-    "openai/gpt-4.1-mini"
+    "anthropic/claude-3-haiku-20250219"
   );
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   const { user, setUser, refreshSession } = useUserStore();
@@ -824,7 +836,6 @@ export default function ChatPage({
             : editedMessage && messagesUpToEdit
             ? messagesUpToEdit
             : messages,
-          search_enabled: searchEnabled,
           model: selectedModel,
           fileUrl: fileUrl,
           fileType: fileType,
@@ -855,7 +866,6 @@ export default function ChatPage({
             : editedMessage && messagesUpToEdit
             ? messagesUpToEdit
             : messages,
-          search_enabled: searchEnabled,
           model: selectedModel,
           fileUrl: "",
           fileType: "",
@@ -1355,7 +1365,6 @@ export default function ChatPage({
       currentChatId,
       router,
       messages,
-      searchEnabled,
       selectedModel,
       fileUrl,
       fileType,
@@ -1749,7 +1758,7 @@ export default function ChatPage({
 
       {/* Main Chat Area */}
       <div
-        className={`flex flex-col w-full dark:bg-[#222325] bg-white lg:mt-0 `}
+        className={`flex flex-col w-full dark:bg-[#272728] bg-white lg:mt-0 `}
       >
         <div className="lg:hidden">
           <Header landingPage={true} isAnonymous={isAnonymous} />
@@ -1759,7 +1768,8 @@ export default function ChatPage({
           <div className="fixed top-4 right-4 z-50 hidden lg:block">
             <Button
               onClick={() => setIsShareDialogOpen(true)}
-              className="cursor-pointer"
+              className="cursor-pointer border border-neutral-300 dark:border-neutral-700 rounded-full px-4 py-1 text-sm"
+              variant="ghost"
             >
               <Upload className="w-4 h-4" />
               Share
@@ -1767,67 +1777,92 @@ export default function ChatPage({
           </div>
         ) : null}
 
-        {/* Show HeroSection for new chats */}
-        {searchParams.get("new") && !input ? (
-          <HeroSection setInput={setInput} />
-        ) : /* Show loading spinner when loading an existing chat with no messages yet */
-        messages.length === 0 && !input ? (
-          <div className="flex justify-center items-center h-full">
-            <Spinner />
-          </div>
-        ) : (
-          /* Show main chat interface */
-          <div className="overflow-y-scroll h-full [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 mt-12 lg:mt-0">
-            <div className="max-w-[780px] mx-auto px-4 mt-5 md:pl-10">
-              {messages.map((message, index) => (
-                <MemoizedRenderMessageOnScreen
-                  key={index}
-                  message={message}
-                  index={index}
-                  messages={messages}
-                  chatInitiated={chatInitiated}
-                  loadingPhase={loadingPhase}
-                  searchEnabled={searchEnabled}
-                  selectedModel={selectedModel}
-                  setMessages={setMessages}
-                  handleSendMessage={handleSendMessage}
-                  handleBranchClick={handleBranchClick}
-                />
-              ))}
-              <div ref={messagesEndRef} className="pb-[120px]" />
+        <div
+          className={`flex flex-col w-full ${
+            searchParams.get("new")
+              ? "h-[calc(100vh-150px)] items-center justify-center"
+              : "h-full"
+          }`}
+        >
+          {/* Show HeroSection for new chats */}
+          {searchParams.get("new") ? (
+            // <HeroSection setInput={setInput} />
+            <div className="mx-auto px-4 text-center md:w-[750px] select-none">
+              <p
+                className={`text-3xl text-left ml-2 font-[400] dark:text-[#dadada] font-sans ${libreBaskerville.className}`}
+              >
+                <span className={`${pacifico.className} text-3xl`}></span>
+                Hello {user?.name}
+              </p>
+              <p
+                className={`text-2xl text-left ml-2 font-[400] text-[#7f7f7f] mt-2 ${libreBaskerville.className}`}
+              >
+                What can I do for you?
+              </p>
             </div>
-          </div>
-        )}
+          ) : /* Show loading spinner when loading an existing chat with no messages yet */
+          messages.length === 0 && !input ? (
+            <div className="flex justify-center items-center h-full">
+              <Spinner />
+            </div>
+          ) : (
+            /* Show main chat interface */
+            <>
+              <div className="overflow-y-scroll h-full [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 mt-12 lg:mt-0">
+                <div className="max-w-[780px] mx-auto px-4 mt-5 md:pl-10">
+                  {messages.map((message, index) => (
+                    <MemoizedRenderMessageOnScreen
+                      key={index}
+                      message={message}
+                      index={index}
+                      messages={messages}
+                      chatInitiated={chatInitiated}
+                      loadingPhase={loadingPhase}
+                      selectedModel={selectedModel}
+                      setMessages={setMessages}
+                      handleSendMessage={handleSendMessage}
+                      handleBranchClick={handleBranchClick}
+                    />
+                  ))}
+                  <div ref={messagesEndRef} className="pb-[130px]" />
+                </div>
+              </div>
+            </>
+          )}
 
-        <div className="w-full mx-auto">
-          <div className="max-w-[750px] mx-auto">
-            <InputBox
-              ref={inputBoxRef}
-              height={inputBoxHeight}
-              input={input}
-              setInput={setInput}
-              onSend={(messageContent) => {
-                handleSendMessage(messageContent, false);
-              }}
-              disabled={isGenerating || isAuthenticating}
-              searchEnabled={searchEnabled}
-              onSearchToggle={setSearchEnabled}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              fileUrl={fileUrl || ""}
-              setFileUrl={setFileUrl}
-              fileType={fileType || ""}
-              setFileType={setFileType}
-              fileName={fileName || ""}
-              setFileName={setFileName}
-            />
+          <div className="w-full mx-auto max-w-[750px]">
+            <div
+              className={`mx-auto ${
+                searchParams.get("new")
+                  ? "mt-4"
+                  : "fixed bottom-0 pb-2 bg-white dark:bg-[#272728]"
+              }`}
+            >
+              <InputBox
+                ref={inputBoxRef}
+                height={inputBoxHeight}
+                input={input}
+                setInput={setInput}
+                onSend={(messageContent) => {
+                  handleSendMessage(messageContent, false);
+                }}
+                disabled={isGenerating || isAuthenticating}
+                selectedModel={selectedModel}
+                fileUrl={fileUrl || ""}
+                setFileUrl={setFileUrl}
+                fileType={fileType || ""}
+                setFileType={setFileType}
+                fileName={fileName || ""}
+                setFileName={setFileName}
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Share Dialog */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="sm:max-w-md p-5 bg-white dark:bg-[#222325]">
+        <DialogContent className="sm:max-w-md p-5 bg-white dark:bg-[#272728]">
           <DialogHeader>
             <DialogTitle>Share this conversation</DialogTitle>
             <DialogDescription>
@@ -1845,7 +1880,7 @@ export default function ChatPage({
                 <Button
                   type="submit"
                   size="sm"
-                  className="px-3 bg-black dark:bg-[#2d2e30] dark:text-white rounded-lg cursor-pointer"
+                  className="px-3 bg-black dark:bg-[#343435] dark:text-white rounded-lg cursor-pointer"
                   onClick={() => {
                     setCopyClicked(true);
                     navigator.clipboard.writeText(
@@ -1916,7 +1951,6 @@ interface RenderMessageProps {
   messages: Message[];
   chatInitiated: boolean;
   loadingPhase: "searching" | "generating" | null;
-  searchEnabled: boolean;
   selectedModel: string;
   setMessages: (messages: Message[]) => void;
   handleSendMessage: (
@@ -2011,7 +2045,6 @@ const RenderMessageOnScreen = ({
   messages,
   chatInitiated,
   loadingPhase,
-  searchEnabled,
   selectedModel,
   setMessages,
   handleSendMessage,
@@ -2115,7 +2148,7 @@ const RenderMessageOnScreen = ({
     let loadingText = "Generating response...";
     if (isImageGenerationModel) {
       loadingText = "Generating image...";
-    } else if (searchEnabled && loadingPhase === "searching") {
+    } else if (loadingPhase === "searching") {
       loadingText = "Searching...";
     }
 
@@ -2156,7 +2189,7 @@ const RenderMessageOnScreen = ({
                 className={`rounded-3xl bg-gray-100  dark:text-white rounded-br-lg   font-lora ${
                   editingMessageIndex === index
                     ? "px-[1px] w-screen max-w-[720px] dark:bg-neutral-900"
-                    : "p-2 px-4 dark:bg-[#2d2e30]"
+                    : "p-2 px-4 dark:bg-[#343435]"
                 }`}
               >
                 {editingMessageIndex === index ? (
@@ -2355,7 +2388,7 @@ const RenderMessageOnScreen = ({
           {message.role === "user" && (
             <div className="ml-auto max-w-full w-fit">
               <div
-                className={`rounded-3xl bg-gray-100 dark:bg-[#2d2e30] dark:text-white rounded-br-lg font-lora ${
+                className={`rounded-3xl bg-gray-100 dark:bg-[#343435] dark:text-white rounded-br-lg font-lora ${
                   editingMessageIndex === index
                     ? "px-[1px] w-screen max-w-[720px]"
                     : "p-3 px-4"
