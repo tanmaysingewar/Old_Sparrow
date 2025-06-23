@@ -30,7 +30,6 @@ import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-import models from "@/support/models";
 import PDFIcon from "./assets/pdf";
 import DOCIcon from "./assets/doc";
 
@@ -40,7 +39,6 @@ interface InputBoxProps {
   onSend: (message: string) => void;
   height: number;
   disabled?: boolean;
-  selectedModel: string;
   fileUrl: string;
   setFileUrl: (value: string) => void;
   fileType: string;
@@ -61,7 +59,6 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
     onSend,
     height,
     disabled,
-    selectedModel,
     fileUrl,
     setFileUrl,
     setFileType,
@@ -96,9 +93,6 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
         )
       : // .slice(0, 5)
         [];
-
-  const selectedModelData =
-    models.find((m) => m.id === selectedModel) || models[0];
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const suggestionsContainerRef = useRef<HTMLDivElement>(null);
@@ -185,11 +179,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
     setSelectedIndex(0);
   }, [input.split(" ").slice(-1)[0]]);
 
-  // Determine upload route based on model capabilities
-  const uploadRoute =
-    selectedModelData.imageUpload && !selectedModelData.docsUpload
-      ? "imageUploader"
-      : "mediaUploader";
+  const uploadRoute = "mediaUploader";
 
   const { startUpload, routeConfig } = useUploadThing(uploadRoute, {
     onClientUploadComplete: (res) => {
@@ -350,40 +340,31 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
           <div className="flex flex-row justify-between w-full mt-0">
             <div className="flex flex-row mt-2 dark:text-neutral-200 mx-2 mb-2 justify-center items-center gap-2">
               <div className="mt-0 flex flex-row gap-3">
-                {(selectedModelData.docsUpload ||
-                  selectedModelData.imageUpload) && (
-                  <div
-                    className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
-                    {...getRootProps()}
+                <div
+                  className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
+                  {...getRootProps()}
+                >
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    {...getInputProps()}
+                    disabled={isUploading}
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className={`flex flex-row items-center p-1.5 ${
+                      isUploading ? "cursor-wait" : "cursor-pointer"
+                    }`}
                   >
-                    <input
-                      type="file"
-                      id="file-upload"
-                      className="hidden"
-                      accept={
-                        selectedModelData.imageUpload &&
-                        !selectedModelData.docsUpload
-                          ? ".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
-                          : ".txt,.pdf,.doc,.docx"
-                      }
-                      onChange={handleFileUpload}
-                      {...getInputProps()}
-                      disabled={isUploading}
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className={`flex flex-row items-center p-1.5 ${
-                        isUploading ? "cursor-wait" : "cursor-pointer"
-                      }`}
-                    >
-                      {isUploading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Paperclip className="w-[18px] h-[18px]" />
-                      )}
-                    </label>
-                  </div>
-                )}
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Paperclip className="w-[18px] h-[18px]" />
+                    )}
+                  </label>
+                </div>
               </div>
               <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-full relative w-fit p-[1px]">
                 <motion.div

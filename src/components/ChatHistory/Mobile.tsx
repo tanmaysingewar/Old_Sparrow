@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Trash2,
   Edit3,
@@ -14,14 +14,14 @@ import {
   Upload,
   CopyIcon,
 } from "lucide-react";
-import { CHAT_CACHE_UPDATED_EVENT } from "@/lib/fetchChats";
+import { CHAT_CACHE_UPDATED_EVENT } from "@/support/fetchChats";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 
 // Interface for individual chat items (remains the same)
 interface Chat {

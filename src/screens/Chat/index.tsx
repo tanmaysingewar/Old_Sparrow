@@ -5,13 +5,11 @@ import React, {
   useEffect,
   useLayoutEffect,
   useCallback,
-  memo,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import InputBox, { InputBoxRef } from "@/components/InputArea/InputBox";
 import Header from "@/components/Header";
 import Spinner from "@/components/Spinner";
-import MessageRenderer from "@/components/MessageRenderer";
 import { useUserStore } from "@/store/userStore";
 import { authClient } from "@/lib/auth-client";
 import Cookies from "js-cookie";
@@ -19,19 +17,12 @@ import {
   fetchAllChatsAndCache,
   fetchSharedChatsAndCache,
   CHAT_CACHE_UPDATED_EVENT,
-} from "@/lib/fetchChats";
+} from "@/support/fetchChats";
 import { cn } from "@/lib/utils";
-import ChatHistoryDesktop from "@/components/ChatHistoryDesktop";
+import ChatHistoryDesktop from "@/components/ChatHistory/Desktop";
 import Head from "next/head";
-import {
-  Check,
-  CopyIcon,
-  Edit3,
-  GitBranch,
-  Loader2,
-  Upload,
-  RotateCcw,
-} from "lucide-react";
+import MemoizedRenderMessageOnScreen from "./RenderMessage";
+import { Check, CopyIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,8 +32,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-import { Textarea } from "@/components/ui/textarea";
-import models from "@/support/models";
 import { Pacifico } from "next/font/google";
 import { Libre_Baskerville } from "next/font/google";
 
@@ -55,9 +44,6 @@ const libreBaskerville = Libre_Baskerville({
   subsets: ["latin"],
   weight: ["400", "700"],
 });
-
-// import HeroSection from "@/components/HeroSection";
-// import { Button } from "@/components/ui/button";
 
 interface Message {
   role: "user" | "assistant";
@@ -76,33 +62,6 @@ const generateChatId = (): string => {
     return `fallback-${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 15)}`;
-  }
-};
-
-const decrementRateLimit = () => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    console.error(
-      "localStorage is not available. Cannot decrement rate limit."
-    );
-    return;
-  }
-
-  const storedRateLimit = localStorage.getItem("userRateLimit");
-
-  if (storedRateLimit) {
-    const currentRateLimit = parseInt(storedRateLimit, 10);
-
-    if (!isNaN(currentRateLimit) && currentRateLimit > 0) {
-      const newRateLimit = currentRateLimit - 1;
-      localStorage.setItem("userRateLimit", newRateLimit.toString());
-      console.log(`Rate limit decremented to: ${newRateLimit}`);
-    } else if (isNaN(currentRateLimit)) {
-      console.warn("Rate limit in local storage is not a valid number.");
-    } else {
-      console.log("Rate limit is already 0 or less, cannot decrement.");
-    }
-  } else {
-    console.warn("Rate limit not found in local storage.");
   }
 };
 
@@ -285,9 +244,6 @@ export default function ChatPage({
   const [chatInitiated, setChatInitiated] = useState<boolean>(false);
   const [input, setInput] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [loadingPhase, setLoadingPhase] = useState<
-    "searching" | "generating" | null
-  >(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>(
@@ -726,18 +682,6 @@ export default function ChatPage({
 
       setIsGenerating(true);
 
-      // Set appropriate loading phase based on model
-      const isImageGenerationModel = selectedModel === "openai/gpt-image-1";
-      if (isImageGenerationModel) {
-        setLoadingPhase("generating");
-      } else {
-        setLoadingPhase("searching");
-        // Add a timeout to switch to generating phase after 2 seconds for regular chat
-        setTimeout(() => {
-          setLoadingPhase("generating");
-        }, 3000);
-      }
-
       setInput("");
 
       let chatIdForRequest = currentChatId;
@@ -963,7 +907,6 @@ export default function ChatPage({
             const errorData = await response.json();
             errorMsg = errorData.error || errorMsg;
             setIsGenerating(false);
-            setLoadingPhase(null);
           } catch (e) {
             console.error("Failed to parse error response:", e);
           }
@@ -1088,7 +1031,6 @@ export default function ChatPage({
 
             // Set the final state
             setMessages(finalMessagesState);
-            decrementRateLimit();
           }
 
           // Save to localStorage (save for personal chats and converted shared chats)
@@ -1289,7 +1231,6 @@ export default function ChatPage({
 
           // Set the final state
           setMessages(finalMessagesState);
-          decrementRateLimit();
 
           // Save the definitive final state to Local Storage (save for personal chats and converted shared chats)
           const shouldSaveFinal =
@@ -1355,7 +1296,6 @@ export default function ChatPage({
         });
       } finally {
         setIsGenerating(false);
-        setLoadingPhase(null);
         processingInitialMessageRef.current = null; // Clear ref after processing attempt
       }
     },
@@ -1664,79 +1604,6 @@ export default function ChatPage({
     );
   }
 
-  const handleBranchClick = async () => {
-    // duplicate the current chat
-    const newChatId = crypto.randomUUID();
-    const newChatTitle = "Branched - " + chatTitle;
-    const newChatCreatedAt = new Date().toISOString();
-    const newChat = {
-      id: newChatId,
-      title: newChatTitle,
-      createdAt: newChatCreatedAt,
-    };
-    let newChatMessages = [];
-    // get current chat history form ChatHistoryCache key
-    const currentChatHistory = localStorage.getItem("chatHistoryCache");
-    let currentChatHistoryData = null;
-    if (currentChatHistory) {
-      currentChatHistoryData = JSON.parse(currentChatHistory);
-    }
-
-    // Get the current chat messages from the local storage
-    const currentChatMessages = localStorage.getItem(
-      getLocalStorageKey(searchParams.get("chatId") || "")
-    );
-    console.log(currentChatMessages);
-    if (currentChatMessages) {
-      const currentChatData = JSON.parse(currentChatMessages);
-      newChatMessages = currentChatData;
-    }
-
-    // Update the new chat in the DB
-    const response = await fetch("/api/branch", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chatId: newChatId,
-        title: newChatTitle,
-        messages: newChatMessages,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("Failed to branch chat");
-      return false;
-    }
-
-    //add the new chat to the currentChatHistoryData
-    if (currentChatHistoryData) {
-      localStorage.setItem(
-        "chatHistoryCache",
-        JSON.stringify({
-          chats: [newChat, ...currentChatHistoryData.chats],
-          totalChats: currentChatHistoryData.totalChats + 1,
-          timestamp: Date.now(),
-        })
-      );
-      window.dispatchEvent(new Event(CHAT_CACHE_UPDATED_EVENT));
-    }
-    // save the new chat to the local storage
-    localStorage.setItem(
-      getLocalStorageKey(newChatId),
-      JSON.stringify(newChatMessages)
-    );
-
-    document.title = newChatTitle + " - Better Index";
-    setChatTitle(newChatTitle); // Update the chatTitle state to reflect the new branched chat title
-    const currentSearchParams = new URLSearchParams(window.location.search);
-    currentSearchParams.set("chatId", newChatId);
-    currentSearchParams.delete("new");
-    window.history.pushState({}, "", `/chat?${currentSearchParams}`);
-    return true;
-  };
-
   return (
     <div className={`flex w-full h-full`}>
       {/* Chat History - Hidden on mobile by default */}
@@ -1817,11 +1684,8 @@ export default function ChatPage({
                       index={index}
                       messages={messages}
                       chatInitiated={chatInitiated}
-                      loadingPhase={loadingPhase}
-                      selectedModel={selectedModel}
                       setMessages={setMessages}
                       handleSendMessage={handleSendMessage}
-                      handleBranchClick={handleBranchClick}
                     />
                   ))}
                   <div ref={messagesEndRef} className="pb-[130px]" />
@@ -1847,7 +1711,6 @@ export default function ChatPage({
                   handleSendMessage(messageContent, false);
                 }}
                 disabled={isGenerating || isAuthenticating}
-                selectedModel={selectedModel}
                 fileUrl={fileUrl || ""}
                 setFileUrl={setFileUrl}
                 fileType={fileType || ""}
@@ -1943,633 +1806,3 @@ export default function ChatPage({
     </div>
   );
 }
-// --- Memoized Message Rendering Component ---
-
-interface RenderMessageProps {
-  message: Message;
-  index: number;
-  messages: Message[];
-  chatInitiated: boolean;
-  loadingPhase: "searching" | "generating" | null;
-  selectedModel: string;
-  setMessages: (messages: Message[]) => void;
-  handleSendMessage: (
-    messageContent: string,
-    editedMessage: boolean,
-    messagesUpToEdit?: Message[]
-  ) => Promise<void>;
-  handleBranchClick: () => void;
-}
-
-/**
- * Helper function to highlight special words in text
- */
-const highlightSpecialWords = (text: string) => {
-  // Split the text into words while preserving spaces and punctuation
-  return text.split(/(\s+)/).map((word, index) => {
-    if (word.includes("#")) {
-      return (
-        <span
-          key={index}
-          className="bg-blue-500/30 rounded px-1 py-1 text-sm font-semibold font-lora"
-        >
-          {word}
-        </span>
-      );
-    } else if (word.includes("@")) {
-      return (
-        <span
-          key={index}
-          className="bg-pink-500/30 rounded px-1 py-1 text-sm font-semibold font-lora"
-        >
-          {word}
-        </span>
-      );
-    } else if (word.includes("$")) {
-      return (
-        <span
-          key={index}
-          className="bg-orange-500/30 rounded px-1 py-1 text-sm font-semibold font-lora"
-        >
-          {word}
-        </span>
-      );
-    }
-    return word;
-  });
-};
-
-/**
- * Renders a single message bubble.
- * Memoized to prevent re-rendering if props haven't changed.
- */
-
-const handleEditKeyPress = (
-  e: React.KeyboardEvent,
-  index: number,
-  editingText: string,
-  setEditingMessageIndex: (index: number | null) => void,
-  setEditingText: (text: string) => void,
-  messages: Message[],
-  setMessages: (messages: Message[]) => void,
-  handleSendMessage: (
-    messageContent: string,
-    editedMessage: boolean,
-    messagesUpToEdit?: Message[]
-  ) => Promise<void>
-) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    // Handle the edit here
-    console.log("Editing message:", editingText);
-
-    // Filter messages to only include those before the edited message
-    const messagesUpToEdit = messages.filter((_, i) => i < index);
-
-    // Set the filtered messages immediately
-    setMessages(messagesUpToEdit);
-
-    // Clear editing state
-    setEditingMessageIndex(null);
-    setEditingText("");
-
-    // Send the edited message with the correct context
-    const editedMessage = true;
-    handleSendMessage(editingText, editedMessage, messagesUpToEdit);
-  }
-};
-
-const RenderMessageOnScreen = ({
-  message,
-  index,
-  messages,
-  chatInitiated,
-  loadingPhase,
-  selectedModel,
-  setMessages,
-  handleSendMessage,
-  handleBranchClick,
-}: RenderMessageProps) => {
-  const [CopyClicked, setCopyClicked] = useState(false);
-  const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(
-    null
-  );
-  const [editingText, setEditingText] = useState<string>("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [branchLoading, setBranchLoading] = useState(false);
-  const [imageKey, setImageKey] = useState<string>(
-    `${message.content}-${Date.now()}`
-  );
-
-  // Update image key when message changes
-  useEffect(() => {
-    if (message.fileUrl) {
-      setImageKey(`${message.fileUrl}-${Date.now()}`);
-    }
-  }, [message.fileUrl]);
-
-  // Auto-resize textarea based on content
-  useEffect(() => {
-    // Add a small delay to ensure the textarea is rendered
-    const timeoutId = setTimeout(() => {
-      if (textareaRef.current && editingMessageIndex === index) {
-        const textarea = textareaRef.current;
-        console.log("Textarea ref found:", textarea); // Debug log
-
-        // Reset height to auto to get the correct scrollHeight
-        textarea.style.height = "auto";
-        textarea.style.overflow = "hidden";
-        textarea.style.resize = "none";
-
-        // Set height to scrollHeight to fit content
-        const newHeight = Math.max(textarea.scrollHeight, 60); // minimum height
-        textarea.style.height = newHeight + "px";
-        console.log("heightOfTheTextArea", newHeight);
-
-        // textarea.scrollIntoView({
-        //   behavior: "smooth",
-        //   block: "end",
-        //   inline: "nearest",
-        // });
-
-        textarea.focus();
-      } else {
-        console.log("Textarea ref not found or not editing:", {
-          current: textareaRef.current,
-          editingMessageIndex,
-          index,
-        }); // Debug log
-      }
-    }, 10); // Small delay to ensure DOM is updated
-
-    return () => clearTimeout(timeoutId);
-  }, [editingText, editingMessageIndex, index]);
-
-  // Create a callback ref that handles auto-resizing
-  const textareaCallbackRef = useCallback(
-    (textarea: HTMLTextAreaElement | null) => {
-      if (textarea && editingMessageIndex === index) {
-        console.log("Textarea callback ref called:", textarea); // Debug log
-
-        // Store the ref for other uses
-        textareaRef.current = textarea;
-
-        // Auto-resize logic
-        textarea.style.height = "auto";
-        textarea.style.overflow = "hidden";
-        textarea.style.resize = "none";
-
-        const newHeight = Math.max(textarea.scrollHeight, 60);
-        textarea.style.height = newHeight + "px";
-        console.log("heightOfTheTextArea from callback:", newHeight);
-
-        textarea.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
-          inline: "nearest",
-        });
-
-        textarea.focus();
-      }
-    },
-    [editingText, editingMessageIndex, index]
-  );
-
-  const handleCopyClick = () => {
-    setCopyClicked(true);
-    navigator.clipboard.writeText(message.content);
-    setTimeout(() => {
-      setCopyClicked(false);
-    }, 2000);
-  };
-  const LoadingIndicator = () => {
-    const isImageGenerationModel = selectedModel === "openai/gpt-image-1";
-
-    let loadingText = "Generating response...";
-    if (isImageGenerationModel) {
-      loadingText = "Generating image...";
-    } else if (loadingPhase === "searching") {
-      loadingText = "Searching...";
-    }
-
-    return (
-      <div className="flex items-center space-x-2">
-        <Spinner className="w-5 h-5" />
-        <span className="loading-text-shine">{loadingText}</span>
-      </div>
-    );
-  };
-
-  return (
-    <>
-      {/* Desktop Message Bubble */}
-      <div
-        className={`mb-2 hidden md:block font-lora ${
-          message.role === "user" ? "ml-auto" : "mr-auto"
-        }`}
-        style={{
-          minHeight: `${
-            messages.length - 1 === index &&
-            message.role === "user" &&
-            chatInitiated
-              ? "calc(-300px + 100vh)"
-              : messages.length - 1 === index &&
-                message.role === "assistant" &&
-                chatInitiated
-              ? "calc(-240px + 100vh)"
-              : "auto"
-          }`,
-        }}
-      >
-        <div>
-          {/* User */}
-          {message.role === "user" && (
-            <div className="ml-auto max-w-full w-fit">
-              <div
-                className={`rounded-3xl bg-gray-100  dark:text-white rounded-br-lg   font-lora ${
-                  editingMessageIndex === index
-                    ? "px-[1px] w-screen max-w-[720px] dark:bg-neutral-900"
-                    : "p-2 px-4 dark:bg-[#343435]"
-                }`}
-              >
-                {editingMessageIndex === index ? (
-                  <Textarea
-                    ref={textareaCallbackRef}
-                    value={editingText}
-                    className="rounded-xl p-3 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xl font-lora dark:bg-neutral-900 bg-neutral-200"
-                    style={{
-                      fontSize: "17px",
-                    }}
-                    onChange={(e) => setEditingText(e.target.value)}
-                    onKeyDown={(e) =>
-                      handleEditKeyPress(
-                        e,
-                        index,
-                        editingText,
-                        setEditingMessageIndex,
-                        setEditingText,
-                        messages,
-                        setMessages,
-                        handleSendMessage
-                      )
-                    }
-                  />
-                ) : (
-                  <div className="font-lora">
-                    <p>{highlightSpecialWords(message.content)}</p>
-                    {message.fileUrl && (
-                      <div className="mt-1">
-                        {message.fileType?.startsWith("image/") ? (
-                          <div className="relative">
-                            <img
-                              key={imageKey}
-                              src={message.fileUrl}
-                              alt={message.fileName || "Uploaded image"}
-                              className="max-w-[300px] max-h-[200px] object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() =>
-                                message.fileUrl &&
-                                window.open(message.fileUrl, "_blank")
-                              }
-                              title="Click to open in new tab"
-                              onError={(e) => {
-                                console.error(
-                                  "Image failed to load:",
-                                  message.fileUrl
-                                );
-                                e.currentTarget.src = ""; // Clear the src on error
-                              }}
-                            />
-                            <div className="text-xs text-gray-500 mt-1">
-                              {message.fileName}
-                            </div>
-                          </div>
-                        ) : (
-                          <div
-                            className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-[#344d58] max-w-[300px] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2e444e] transition-colors mb-2"
-                            onClick={() =>
-                              message.fileUrl &&
-                              window.open(message.fileUrl, "_blank")
-                            }
-                            title="Click to open in new tab"
-                          >
-                            <div className="flex-shrink-0">
-                              <svg
-                                className="w-8 h-8 text-gray-400"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                {message.fileName}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {message.fileType}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-row justify-end items-end">
-                {CopyClicked ? (
-                  <Check className="w-4 h-4 m-2" />
-                ) : (
-                  <CopyIcon
-                    className="w-4 h-4 cursor-pointer m-2"
-                    onClick={handleCopyClick}
-                  />
-                )}
-                <Edit3
-                  className="w-4 h-4 cursor-pointer m-2"
-                  onClick={() => {
-                    if (editingMessageIndex === index) {
-                      setEditingMessageIndex(null);
-                    } else {
-                      setEditingMessageIndex(index);
-                    }
-                    setEditingText(message.content);
-                  }}
-                />
-                <RotateCcw
-                  className="w-4 h-4 cursor-pointer m-2"
-                  onClick={() => {
-                    // Redo from this point: remove all messages after this one and resend
-                    const messagesUpToRedo = messages.filter(
-                      (_, i) => i < index
-                    );
-                    setMessages(messagesUpToRedo);
-                    handleSendMessage(message.content, true, messagesUpToRedo);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Bot  */}
-          {message.role === "assistant" && (
-            <div>
-              <div
-                className={`p-3 rounded-3xl w-fit max-w-full  dark:bg-transparent dark:text-white rounded-bl-lg mr-auto`}
-              >
-                {message.content === "loading" ? (
-                  <LoadingIndicator />
-                ) : (
-                  <div className="markdown-content">
-                    <MessageRenderer
-                      key={imageKey}
-                      content={message.content || " "}
-                    />
-                    <div className="flex flex-row items-center gap-4">
-                      {CopyClicked ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <CopyIcon
-                          className="w-4 h-4 cursor-pointer"
-                          onClick={handleCopyClick}
-                        />
-                      )}
-                      {branchLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <GitBranch
-                          className="w-4 h-4 cursor-pointer"
-                          onClick={async () => {
-                            setBranchLoading(true);
-                            await handleBranchClick();
-                            setBranchLoading(false);
-                          }}
-                        />
-                      )}
-                      {message.model && (
-                        <div className="text-sm px-0 py-1 font">
-                          {models.find((m) => m.id === message.model)?.name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Message Bubble */}
-      <div
-        className={`mb-2 block md:hidden font-lora ${
-          message.role === "user" ? "ml-auto" : "mr-auto"
-        }`}
-        style={{
-          minHeight: `${
-            messages.length - 1 === index &&
-            chatInitiated &&
-            message.role === "user"
-              ? "calc(-360px + 100vh)"
-              : messages.length - 1 === index &&
-                chatInitiated &&
-                message.role === "assistant"
-              ? "calc(-380px + 100vh)"
-              : "auto"
-          }`,
-        }}
-      >
-        <div>
-          {/* User */}
-          {message.role === "user" && (
-            <div className="ml-auto max-w-full w-fit">
-              <div
-                className={`rounded-3xl bg-gray-100 dark:bg-[#343435] dark:text-white rounded-br-lg font-lora ${
-                  editingMessageIndex === index
-                    ? "px-[1px] w-screen max-w-[720px]"
-                    : "p-3 px-4"
-                }`}
-              >
-                {editingMessageIndex === index ? (
-                  <Textarea
-                    ref={textareaCallbackRef}
-                    value={editingText}
-                    className="rounded-xl p-3 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-lg font-lora bg-neutral-900"
-                    style={{
-                      fontSize: "16px",
-                      resize: "none",
-                      overflow: "hidden",
-                    }}
-                    onChange={(e) => setEditingText(e.target.value)}
-                    onKeyDown={(e) =>
-                      handleEditKeyPress(
-                        e,
-                        index,
-                        editingText,
-                        setEditingMessageIndex,
-                        setEditingText,
-                        messages,
-                        setMessages,
-                        handleSendMessage
-                      )
-                    }
-                  />
-                ) : (
-                  <div>
-                    <div>{highlightSpecialWords(message.content)}</div>
-                    {message.fileUrl && (
-                      <div className="mt-3">
-                        {message.fileType?.startsWith("image/") ? (
-                          <div className="relative">
-                            <img
-                              key={imageKey}
-                              src={message.fileUrl}
-                              alt={message.fileName || "Uploaded image"}
-                              className="max-w-[250px] max-h-[150px] object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() =>
-                                message.fileUrl &&
-                                window.open(message.fileUrl, "_blank")
-                              }
-                              title="Click to open in new tab"
-                              onError={(e) => {
-                                console.error(
-                                  "Image failed to load:",
-                                  message.fileUrl
-                                );
-                                e.currentTarget.src = ""; // Clear the src on error
-                              }}
-                            />
-                            <div className="text-xs text-gray-500 mt-1">
-                              {message.fileName}
-                            </div>
-                          </div>
-                        ) : (
-                          <div
-                            className="flex items-center gap-2 p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 max-w-[250px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                            onClick={() =>
-                              message.fileUrl &&
-                              window.open(message.fileUrl, "_blank")
-                            }
-                            title="Click to open in new tab"
-                          >
-                            <div className="flex-shrink-0">
-                              <svg
-                                className="w-6 h-6 text-gray-400"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                                {message.fileName}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {message.fileType}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-row justify-end items-end">
-                {CopyClicked ? (
-                  <Check className="w-4 h-4 m-2" />
-                ) : (
-                  <CopyIcon
-                    className="w-4 h-4 cursor-pointer m-2"
-                    onClick={handleCopyClick}
-                  />
-                )}
-                <Edit3
-                  className="w-4 h-4 cursor-pointer m-2"
-                  onClick={() => {
-                    if (editingMessageIndex === index) {
-                      setEditingMessageIndex(null);
-                    } else {
-                      setEditingMessageIndex(index);
-                    }
-                    setEditingText(message.content);
-                  }}
-                />
-                <RotateCcw
-                  className="w-4 h-4 cursor-pointer m-2"
-                  onClick={() => {
-                    // Redo from this point: remove all messages after this one and resend
-                    const messagesUpToRedo = messages.filter(
-                      (_, i) => i < index
-                    );
-                    setMessages(messagesUpToRedo);
-                    handleSendMessage(message.content, true, messagesUpToRedo);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Bot  */}
-          {message.role === "assistant" && (
-            <div>
-              <div
-                className={`p-3 rounded-3xl w-fit max-w-full  dark:bg-transparent dark:text-white rounded-bl-lg mr-auto`}
-              >
-                {message.content === "loading" ? (
-                  <LoadingIndicator />
-                ) : (
-                  <div className="markdown-content">
-                    <MessageRenderer
-                      key={imageKey}
-                      content={message.content || " "}
-                    />
-                    <div className="flex flex-row items-center gap-4">
-                      {CopyClicked ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <CopyIcon
-                          className="w-4 h-4 cursor-pointer"
-                          onClick={handleCopyClick}
-                        />
-                      )}
-                      {branchLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <GitBranch
-                          className="w-4 h-4 cursor-pointer"
-                          onClick={async () => {
-                            setBranchLoading(true);
-                            await handleBranchClick();
-                            setBranchLoading(false);
-                          }}
-                        />
-                      )}
-                      {message.model && (
-                        <div className="text-sm px-0 py-1 font">
-                          {models.find((m) => m.id === message.model)?.name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
-
-// Create the memoized version of the component
-const MemoizedRenderMessageOnScreen = memo(RenderMessageOnScreen);

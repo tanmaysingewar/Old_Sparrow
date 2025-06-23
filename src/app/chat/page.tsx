@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import ChatInterface from "@/screens/ChatScreen";
+import ChatInterface from "@/screens/Chat";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import Cookies from "js-cookie";
 import Spinner from "@/components/Spinner";
 import { useUserStore } from "@/store/userStore";
-import { fetchAllChatsAndCache } from "@/lib/fetchChats";
+import { fetchAllChatsAndCache } from "@/support/fetchChats";
 
 interface User {
   id: string;

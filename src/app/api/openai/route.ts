@@ -2,16 +2,13 @@ import { auth } from "@/lib/auth";
 import { headers as nextHeaders } from "next/headers";
 import { db } from "@/database/db";
 import { nanoid } from "nanoid";
-import { chat, messages, sharedChat } from "@/database/schema/auth-schema";
+import { chat, messages } from "@/database/schema/auth-schema";
 import { eq } from "drizzle-orm"; // Import eq for querying
-import { tavily } from "@tavily/core";
 import OpenAI from "openai";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import * as mammoth from "mammoth";
 import models from "@/support/models";
-
-const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY! });
 
 export async function POST(req: Request) {
   // --- Standard Response Headers for Streaming ---
@@ -25,23 +22,13 @@ export async function POST(req: Request) {
     const requestHeaders = await nextHeaders();
     currentChatId = requestHeaders.get("X-Chat-ID");
 
-    // Extract shared query parameter from URL
-    const url = new URL(req.url);
-    const shared = url.searchParams.get("shared") === "true";
-    const editedMessage = url.searchParams.get("editedMessage") === "true";
-
     const {
       message,
       previous_conversations,
-      search_enabled,
       model,
       fileUrl,
       fileType,
       fileName,
-      openrouter_api_key,
-      openai_api_key,
-      anthropic_api_key,
-      google_api_key,
     } = await req.json();
 
     console.log("Model", model);
@@ -60,63 +47,6 @@ export async function POST(req: Request) {
         JSON.stringify({ error: "Message content is required" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
-    }
-
-    let openaiClient;
-    let clientProvider = "default";
-    let modelId = model;
-
-    console.log("OpenAI API key", openai_api_key);
-    console.log("OpenRouter API key", openrouter_api_key);
-    console.log("Anthropic API key", anthropic_api_key);
-    console.log("Google API key", google_api_key);
-
-    if (openrouter_api_key) {
-      openaiClient = new OpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
-        apiKey: openrouter_api_key,
-      });
-      clientProvider = "openrouter";
-      console.log("User provided OpenRouter API key");
-    } else if (
-      anthropic_api_key &&
-      (model.includes("claude") || model.includes("anthropic"))
-    ) {
-      openaiClient = new OpenAI({
-        baseURL: "https://api.anthropic.com/v1/",
-        apiKey: anthropic_api_key,
-      });
-      clientProvider = "anthropic";
-      const currentModel = models.find((m) => m.id === model);
-      modelId = currentModel?.originalId || model;
-      console.log("User provided Anthropic API key");
-    } else if (
-      google_api_key &&
-      (model.includes("gemini") || model.includes("google"))
-    ) {
-      openaiClient = new OpenAI({
-        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-        apiKey: google_api_key,
-      });
-      clientProvider = "google";
-      const currentModel = models.find((m) => m.id === model);
-      modelId = currentModel?.originalId || model;
-      console.log("User provided Google Gemini API key");
-    } else if (openai_api_key && model.includes("openai")) {
-      openaiClient = new OpenAI({
-        apiKey: openai_api_key,
-      });
-      clientProvider = "openai";
-      const currentModel = models.find((m) => m.id === model);
-      modelId = currentModel?.originalId || model;
-      console.log("User provided OpenAI API key");
-    } else {
-      openaiClient = new OpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
-        apiKey: process.env.OPENROUTER_API_KEY,
-      });
-      clientProvider = "default";
-      console.log("Using default OpenRouter API key");
     }
 
     if (message.trim().length > 3000) {
@@ -146,327 +76,125 @@ export async function POST(req: Request) {
     const userEmail = sessionData.user.email;
 
     // ------- 4. Rate Limit ----------
-    // Skip rate limiting if user provides their own API key
-    if (clientProvider === "default") {
-      // Find the current model to check if it's premium
-      const currentModel = models.find((m) => m.id === model);
-      const isPremiumModel = currentModel?.premium || false;
+    // Find the current model to check if it's premium
+    const currentModel = models.find((m) => m.id === model);
+    const isPremiumModel = currentModel?.premium || false;
 
-      // Determine if user is non-logged in (demo user)
-      const isNonLoggedInUser =
-        userEmail.includes("@https://www.betterindex.io") ||
-        userEmail.includes("@http://localhost:3000");
+    let ratelimit;
+    const requestLimit = 30;
 
-      let ratelimit;
-      let requestLimit: number;
-      let errorMessage: string;
+    // Create rate limiter with the determined limit
+    if (requestLimit > 0) {
+      ratelimit = new Ratelimit({
+        redis: Redis.fromEnv(),
+        limiter: Ratelimit.slidingWindow(requestLimit, "24 h"),
+      });
 
-      if (isNonLoggedInUser) {
-        // Non-logged in users
-        if (isPremiumModel) {
-          // Premium models: 0 messages for non-logged in users
-          requestLimit = 0;
-          errorMessage =
-            "Premium models require a signed-in account. Please sign in to use more.";
-        } else {
-          // Non-premium models: 10 messages in 24h for non-logged in users
-          requestLimit = 10;
-          errorMessage =
-            "You have reached the maximum of 10 requests per 24 hours for free users. Please sign in for a free account to get more usage.";
-        }
-      } else {
-        // Logged-in users
-        if (isPremiumModel) {
-          // Premium models: 10 messages in 24h for logged-in users
-          requestLimit = 10;
-          errorMessage =
-            "You have reached the maximum of 10 requests per 24 hours for premium models. Please try again after 24 hours or use a non-premium model.";
-        } else {
-          // Non-premium models: 30 messages in 24h for logged-in users
-          requestLimit = 30;
-          errorMessage =
-            "You have reached the maximum of 30 requests per 24 hours. Please try again after 24 hours.";
-        }
-      }
+      // Use user email as the identifier for rate limiting
+      const { success } = await ratelimit.limit(
+        `${userEmail}:${isPremiumModel ? "premium" : "free"}`
+      );
 
-      // Create rate limiter with the determined limit
-      if (requestLimit > 0) {
-        ratelimit = new Ratelimit({
-          redis: Redis.fromEnv(),
-          limiter: Ratelimit.slidingWindow(requestLimit, "24 h"),
-        });
-
-        // Use user email as the identifier for rate limiting
-        const { success } = await ratelimit.limit(
-          `${userEmail}:${isPremiumModel ? "premium" : "free"}`
-        );
-
-        if (!success) {
-          console.warn(
-            `API Warning: Rate limit exceeded for user ${userEmail} using ${
-              isPremiumModel ? "premium" : "free"
-            } model ${model}.`
-          );
-          return new Response(
-            JSON.stringify({
-              error: errorMessage,
-            }),
-            { status: 429, headers: { "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // requestLimit is 0, deny access immediately
+      if (!success) {
         console.warn(
-          `API Warning: Access denied for user ${userEmail} trying to use premium model ${model} without login.`
+          `API Warning: Rate limit exceeded for user ${userEmail} .`
         );
         return new Response(
           JSON.stringify({
-            error: errorMessage,
+            error:
+              "You have reached the maximum of 30 requests per 24 hours. Please try again after 24 hours.",
           }),
-          { status: 403, headers: { "Content-Type": "application/json" } }
+          { status: 429, headers: { "Content-Type": "application/json" } }
         );
       }
     } else {
-      console.log(
-        `Bypassing rate limit for user ${userEmail} using custom API key from ${clientProvider}`
+      // requestLimit is 0, deny access immediately
+      console.warn(
+        `API Warning: User ${userEmail} has reached the maximum of 30 requests per 24 hours.`
+      );
+      return new Response(
+        JSON.stringify({
+          error:
+            "You have reached the maximum of 30 requests per 24 hours. Please try again after 24 hours.",
+        }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
 
     // --- 5. Check Chat Existence, Ownership, or Create New ---
-    if (!shared) {
-      // Normal chat flow
-      try {
-        // Attempt to find the chat
-        const results = await db
-          .select({ id: chat.id, userId: chat.userId })
-          .from(chat)
-          .where(eq(chat.id, currentChatId))
-          .limit(1);
-        const existingChat = results[0];
+    try {
+      // Attempt to find the chat
+      const results = await db
+        .select({ id: chat.id, userId: chat.userId })
+        .from(chat)
+        .where(eq(chat.id, currentChatId))
+        .limit(1);
+      const existingChat = results[0];
 
-        if (existingChat) {
-          // Chat exists - check ownership
-          if (existingChat.userId !== userId) {
-            console.error(
-              `API Error: User ${userId} forbidden access to chat ${currentChatId}.`
-            );
-            return new Response(
-              JSON.stringify({
-                error: "Forbidden: Chat does not belong to user",
-              }),
-              { status: 403, headers: { "Content-Type": "application/json" } }
-            );
-          }
-
-          // If editedMessage is true, delete the existing chat and all its messages
-          if (editedMessage) {
-            // Delete all messages associated with this chat
-            await db.delete(messages).where(eq(messages.chatId, currentChatId));
-
-            // Delete the chat itself
-            await db.delete(chat).where(eq(chat.id, currentChatId));
-
-            console.log(
-              `Deleted chat ${currentChatId} and its messages for edited message flow`
-            );
-
-            // Set flag to create new chat
-            isNewChatFlow = true;
-          } else {
-            // Chat exists and belongs to the user, normal flow
-            isNewChatFlow = false;
-          }
-        } else {
-          // Chat does NOT exist - Create it using the ID from the frontend
-          isNewChatFlow = true;
+      if (existingChat) {
+        // Chat exists - check ownership
+        if (existingChat.userId !== userId) {
+          console.error(
+            `API Error: User ${userId} forbidden access to chat ${currentChatId}.`
+          );
+          return new Response(
+            JSON.stringify({
+              error: "Forbidden: Chat does not belong to user",
+            }),
+            { status: 403, headers: { "Content-Type": "application/json" } }
+          );
         }
+        isNewChatFlow = false;
+      } else {
+        // Chat does NOT exist - Create it using the ID from the frontend
+        isNewChatFlow = true;
+      }
 
-        // Create new chat if needed (either doesn't exist or was deleted for edit)
-        if (isNewChatFlow) {
-          // Generate the title
-          const openaiClientForTitle = new OpenAI({
-            baseURL: "https://openrouter.ai/api/v1",
-            apiKey: process.env.OPENROUTER_API_KEY,
-          });
-          const completion = await openaiClientForTitle.chat.completions.create(
+      // Create new chat if needed (either doesn't exist or was deleted for edit)
+      if (isNewChatFlow) {
+        // Generate the title
+        const openaiClientForTitle = new OpenAI({
+          baseURL: "https://openrouter.ai/api/v1",
+          apiKey: process.env.OPENROUTER_API_KEY,
+        });
+        const completion = await openaiClientForTitle.chat.completions.create({
+          messages: [
             {
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are the Title Generator. You are given a message and you need to generate a title for the chat. The title should be plain text without any symbols, prefixes, or formatting. The title should be 10 words or less.",
-                },
-                {
-                  role: "user",
-                  content: message.trim().substring(0, 100),
-                },
-              ],
-              model: "google/gemini-2.0-flash-001",
-              temperature: 0.1,
-            }
-          );
-
-          // Overright the title of the current chat
-          title = completion.choices[0]?.message
-            ?.content!.trim()
-            .substring(0, 100)
-            .replace(/"/g, "");
-
-          await db.insert(chat).values({
-            id: currentChatId, // Use the ID provided by the frontend
-            title: title, // Use first message for title
-            userId: userId,
-            createdAt: new Date(),
-          });
-        }
-      } catch (dbError) {
-        console.error(
-          `Database error during chat check/creation for ID ${currentChatId}:`,
-          dbError
-        );
-        return new Response(
-          JSON.stringify({ error: "Database error during chat handling" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
-        );
-      }
-    } else {
-      // Shared chat flow - User is continuing a shared chat, convert it to their own chat
-      console.log(
-        `User continuing shared chat ${currentChatId}, converting to user's own chat`
-      );
-
-      try {
-        // Check if user already has a chat with this ID
-        const existingUserChat = await db
-          .select({ id: chat.id, userId: chat.userId })
-          .from(chat)
-          .where(eq(chat.id, currentChatId))
-          .limit(1);
-
-        if (
-          existingUserChat.length > 0 &&
-          existingUserChat[0].userId === userId
-        ) {
-          // User already owns a chat with this ID, proceed normally
-          isNewChatFlow = false;
-          console.log("User already owns this chat, proceeding normally");
-        } else {
-          // Create a new chat for this user with a new ID
-          const newChatId = nanoid();
-          currentChatId = newChatId; // Update the current chat ID
-
-          // Generate title from the first message or use shared chat title
-          let chatTitle = "Continued Chat";
-
-          try {
-            // Fetch the shared chat to get its title
-            const originalSharedChatId = requestHeaders.get("X-Chat-ID");
-            const sharedChatData = await db
-              .select({ title: sharedChat.title })
-              .from(sharedChat)
-              .where(eq(sharedChat.id, originalSharedChatId || ""))
-              .limit(1);
-
-            if (sharedChatData.length > 0) {
-              chatTitle = sharedChatData[0].title;
-            } else {
-              // Generate title from the message
-              const openaiClientForTitle = new OpenAI({
-                baseURL: "https://openrouter.ai/api/v1",
-                apiKey: process.env.OPENROUTER_API_KEY,
-              });
-              const completion =
-                await openaiClientForTitle.chat.completions.create({
-                  messages: [
-                    {
-                      role: "system",
-                      content:
-                        "You are the Title Generator. You are given a message and you need to generate a title for the chat. The title should be plain text without any symbols, prefixes, or formatting. The title should be 10 words or less.",
-                    },
-                    {
-                      role: "user",
-                      content: message.trim().substring(0, 100),
-                    },
-                  ],
-                  model: "google/gemini-2.0-flash-001",
-                  temperature: 0.1,
-                });
-
-              chatTitle =
-                completion.choices[0]?.message
-                  ?.content!.trim()
-                  .substring(0, 100)
-                  .replace(/"/g, "") || "New Chat";
-            }
-          } catch (titleError) {
-            console.error("Error generating title:", titleError);
-            chatTitle = "Continued Chat";
-          }
-
-          title = chatTitle;
-
-          // Create the new chat
-          await db.insert(chat).values({
-            id: newChatId,
-            title: chatTitle,
-            userId: userId,
-            createdAt: new Date(),
-          });
-
-          isNewChatFlow = true;
-          console.log(
-            `Created new chat ${newChatId} for user continuing shared chat`
-          );
-        }
-      } catch (dbError) {
-        console.error(
-          `Database error during shared chat conversion for ID ${currentChatId}:`,
-          dbError
-        );
-        return new Response(
-          JSON.stringify({
-            error: "Database error during shared chat handling",
-          }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    // --- 6. Search Web ---
-
-    async function searchWeb(message: string): Promise<string> {
-      try {
-        const res = await tavilyClient.search(message, {
-          includeAnswer: true,
+              role: "system",
+              content:
+                "You are the Title Generator. You are given a message and you need to generate a title for the chat. The title should be plain text without any symbols, prefixes, or formatting. The title should be 10 words or less.",
+            },
+            {
+              role: "user",
+              content: message.trim().substring(0, 100),
+            },
+          ],
+          model: "google/gemini-2.0-flash-001",
+          temperature: 0.1,
         });
 
-        // Format the results as a string
-        let formattedResults = "";
+        // Overright the title of the current chat
+        title = completion.choices[0]?.message
+          ?.content!.trim()
+          .substring(0, 100)
+          .replace(/"/g, "");
 
-        if (res.results && Array.isArray(res.results)) {
-          res.results.forEach((result, index) => {
-            formattedResults += `Result ${index + 1}:\n`;
-            formattedResults += `Title: ${result.title}\n`;
-            formattedResults += `Content: ${result.content}\n\n`;
-          });
-        }
-
-        // Add the answer if available
-        if (res.answer) {
-          formattedResults += `Summary: ${res.answer}\n`;
-        }
-
-        return formattedResults;
-      } catch (error) {
-        console.error("Error in searchWeb:", error);
-        return "";
+        await db.insert(chat).values({
+          id: currentChatId, // Use the ID provided by the frontend
+          title: title, // Use first message for title
+          userId: userId,
+          createdAt: new Date(),
+        });
       }
-    }
-
-    let searchResults: string = "";
-
-    if (search_enabled) {
-      searchResults = await searchWeb(message);
+    } catch (dbError) {
+      console.error(
+        `Database error during chat check/creation for ID ${currentChatId}:`,
+        dbError
+      );
+      return new Response(
+        JSON.stringify({ error: "Database error during chat handling" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // --- Prepare messages for OpenAI API ---
@@ -481,11 +209,8 @@ export async function POST(req: Request) {
       },
     ];
 
-    if (
-      (!isNewChatFlow || shared || editedMessage) &&
-      Array.isArray(previous_conversations)
-    ) {
-      // If it's an existing chat OR a shared chat OR an edited message, add previous messages sent by the client
+    if (!isNewChatFlow && Array.isArray(previous_conversations)) {
+      // Add previous messages sent by the client
       const validPreviousConversations = await Promise.all(
         previous_conversations
           .filter(
@@ -664,14 +389,7 @@ export async function POST(req: Request) {
     let userMessageContent: string | Array<any>;
 
     // Prepare base text content with search results if available
-    let textContent = message.trim();
-    if (searchResults && searchResults.trim() !== "") {
-      textContent = `
-      -------- Web Search Results --------\n
-      ${searchResults}\n
-      -------- End of Web Search Results --------\n
-      User Message: ${message.trim()}`;
-    }
+    const textContent = message.trim();
 
     // Check if we have file content to include
     if (fileUrl && fileType && fileName) {
@@ -817,52 +535,12 @@ export async function POST(req: Request) {
         // Prepare all messages to be saved (previous conversations + current user message)
         const messagesToSave = [];
 
-        // Save all previous conversations to database if editedMessage is true
-        if (
-          editedMessage &&
-          Array.isArray(previous_conversations) &&
-          previous_conversations.length > 0
-        ) {
-          // Group messages into user-assistant pairs
-          for (let i = 0; i < previous_conversations.length - 1; i += 2) {
-            const userMsg = previous_conversations[i];
-            const assistantMsg = previous_conversations[i + 1];
-
-            if (
-              userMsg?.role === "user" &&
-              assistantMsg?.role === "assistant" &&
-              typeof userMsg.content === "string" &&
-              typeof assistantMsg.content === "string" &&
-              userMsg.content.trim() !== "" &&
-              assistantMsg.content.trim() !== ""
-            ) {
-              messagesToSave.push({
-                id: nanoid(),
-                userMessage: userMsg.content.trim(),
-                botResponse: assistantMsg.content.trim(),
-                chatId: finalChatId,
-                createdAt: new Date(),
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                fileUrl: (userMsg as any).fileUrl || null,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                fileType: (userMsg as any).fileType || null,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                fileName: (userMsg as any).fileName || null,
-                imageResponseId: null,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                model: (assistantMsg as any).model || model,
-              });
-            }
-          }
-        }
-
         // Add the current user message with empty bot response (to be updated later)
         const currentUserMessageId = nanoid();
         messagesToSave.push({
           id: currentUserMessageId,
           userMessage: message.trim(),
-          botResponse:
-            "We're processing your message in the background due to a technical issue. Please refresh the page in a few seconds to see the response.", // Empty for now, will be updated when AI responds
+          botResponse: "", // Empty for now, will be updated when AI responds
           chatId: finalChatId,
           createdAt: new Date(),
           fileUrl: fileUrl || null,
@@ -901,7 +579,7 @@ export async function POST(req: Request) {
     const completionParams: any = {
       messages: messages_format,
       // handle custom model id
-      model: modelId,
+      model: "google/gemini-2.5-flash",
       stream: true,
     };
 
@@ -910,11 +588,7 @@ export async function POST(req: Request) {
     // For now, we don't add thinking parameters when using OpenAI compatibility
 
     // Add PDF processing plugin if we have a PDF file (OpenRouter specific feature)
-    if (
-      fileUrl &&
-      fileType === "application/pdf" &&
-      clientProvider === "default"
-    ) {
+    if (fileUrl && fileType === "application/pdf") {
       completionParams.plugins = [
         {
           id: "file-parser",
@@ -989,90 +663,14 @@ export async function POST(req: Request) {
       }
     };
 
-    // // Background processing function that continues even if client disconnects
-    // const processOpenAIResponse = async () => {
-    //   try {
-    //     console.log(
-    //       "Starting completion processing with provider:",
-    //       clientProvider
-    //     );
-    //     console.log("Completion params:", {
-    //       ...completionParams,
-    //       messages: "REDACTED",
-    //     });
-    //     const completion = await openaiClient.chat.completions.create(
-    //       completionParams
-    //     );
-
-    //     let reasoningStarted = false;
-    //     let reasoningComplete = false;
-    //     let backgroundResponse = "";
-
-    //     // @ts-expect-error- OpenRouter plugins affect TypeScript inference but streaming works correctly
-    //     for await (const chunk of completion) {
-    //       // Handle different response formats from different providers
-    //       if (
-    //         !chunk ||
-    //         !chunk.choices ||
-    //         !Array.isArray(chunk.choices) ||
-    //         chunk.choices.length === 0
-    //       ) {
-    //         console.warn(
-    //           "Invalid chunk format received:",
-    //           JSON.stringify(chunk)
-    //         );
-    //         continue;
-    //       }
-
-    //       const content = chunk.choices[0]?.delta?.content || "";
-    //       const reasoning =
-    //         (chunk.choices[0]?.delta as { reasoning?: string })?.reasoning ||
-    //         "";
-
-    //       if (reasoning) {
-    //         // Start reasoning block if this is the first reasoning chunk
-    //         if (!reasoningStarted) {
-    //           const reasoningStart = `\`\`\` think\n`;
-    //           backgroundResponse += reasoningStart;
-    //           reasoningStarted = true;
-    //         }
-
-    //         // Add the reasoning chunk to background response
-    //         backgroundResponse += reasoning;
-    //       }
-
-    //       if (content) {
-    //         // Close reasoning block if we had reasoning and now we're getting content
-    //         if (reasoningStarted && !reasoningComplete) {
-    //           const reasoningEnd = `\n\`\`\`\n\n`;
-    //           backgroundResponse += reasoningEnd;
-    //           reasoningComplete = true;
-    //         }
-
-    //         backgroundResponse += content;
-    //       }
-    //     }
-
-    //     console.log(
-    //       "OpenAI completion processing finished, updating bot response..."
-    //     );
-    //     // Always update bot response, regardless of client connection status
-    //     await updateBotResponse(backgroundResponse);
-
-    //     return backgroundResponse;
-    //   } catch (error) {
-    //     console.error("Background OpenAI processing error:", error);
-    //     throw error;
-    //   }
-    // };
-
-    // // Start background processing immediately (runs independently)
-    // const backgroundProcessing = processOpenAIResponse();
-
     // Streaming the Response
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          const openaiClient = new OpenAI({
+            baseURL: "https://openrouter.ai/api/v1",
+            apiKey: process.env.OPENROUTER_API_KEY,
+          });
           const completion = await openaiClient.chat.completions.create(
             completionParams
           );
@@ -1084,7 +682,6 @@ export async function POST(req: Request) {
               console.log(
                 "Client disconnected, but continuing background processing..."
               );
-              clientDisconnected = true;
               break;
             }
 
@@ -1103,32 +700,6 @@ export async function POST(req: Request) {
             }
 
             const content = chunk.choices[0]?.delta?.content || "";
-
-            // if (reasoning) {
-            //   // Start reasoning block if this is the first reasoning chunk
-            //   if (!reasoningStarted) {
-            //     const reasoningStart = `\`\`\` think\n`;
-            //     fullBotResponse += reasoningStart;
-            //     try {
-            //       controller.enqueue(encoder.encode(reasoningStart));
-            //     } catch {
-            //       console.log("Client disconnected during reasoning start");
-            //       clientDisconnected = true;
-            //       break;
-            //     }
-            //     reasoningStarted = true;
-            //   }
-
-            //   // Stream the reasoning chunk
-            //   fullBotResponse += reasoning;
-            //   try {
-            //     controller.enqueue(encoder.encode(reasoning));
-            //   } catch {
-            //     console.log("Client disconnected during reasoning");
-            //     clientDisconnected = true;
-            //     break;
-            //   }
-            // }
 
             if (content) {
               fullBotResponse += content;
@@ -1175,17 +746,6 @@ export async function POST(req: Request) {
       Connection: "keep-alive",
       "X-Title": title,
     });
-
-    // Add headers to indicate if this was a shared chat that got converted
-    if (shared && isNewChatFlow) {
-      responseHeaders.set("X-New-Chat-ID", currentChatId);
-      responseHeaders.set("X-Converted-From-Shared", "true");
-    }
-
-    // Ensure background processing continues even if client disconnects
-    // backgroundProcessing.catch((error) => {
-    //   console.error("Background processing failed:", error);
-    // });
 
     // --- 8. Return the stream ---
     return new Response(stream, {

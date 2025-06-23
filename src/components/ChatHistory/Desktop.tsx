@@ -6,18 +6,18 @@ import React, {
   useMemo,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Input } from "./ui/input";
+import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
 import { Pacifico } from "next/font/google";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { useUserStore } from "@/store/userStore";
 import { User, Trash2, Edit3, Check, X, GitBranch, Image } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
-import Settings from "./Setting";
+import Settings from "../Setting";
 import { authClient } from "@/lib/auth-client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
-import { CHAT_CACHE_UPDATED_EVENT } from "@/lib/fetchChats";
+import { CHAT_CACHE_UPDATED_EVENT } from "@/support/fetchChats";
 import { DialogTitle } from "@radix-ui/react-dialog";
 
 const pacifico = Pacifico({

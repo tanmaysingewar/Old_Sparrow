@@ -20,7 +20,7 @@ import Cookies from "js-cookie";
 import { authClient } from "@/lib/auth-client";
 import Image from "next/image";
 import { Button } from "./ui/button";
-import ChatHistory from "./ChatHistory";
+import ChatHistory from "./ChatHistory/Mobile";
 import { Switch } from "./ui/switch";
 import { useUserStore } from "@/store/userStore";
 
