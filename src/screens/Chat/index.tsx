@@ -789,14 +789,11 @@ export default function ChatPage({
 
       try {
         // Make the API request for regular chat
-        const response = await fetch(
-          `/api/openai?editedMessage=${editedMessage}`,
-          {
-            method: "POST",
-            headers: requestHeaders,
-            body: JSON.stringify(requestBody),
-          }
-        );
+        const response = await fetch(`/api/openai`, {
+          method: "POST",
+          headers: requestHeaders,
+          body: JSON.stringify(requestBody),
+        });
 
         if (!response.ok) {
           let errorMsg = `Network response was not ok (${response.status})`;
