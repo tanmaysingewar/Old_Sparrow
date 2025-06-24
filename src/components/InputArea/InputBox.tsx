@@ -286,7 +286,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
             </div>
           </div>
         )}
-        <div className="flex flex-col items-center rounded-3xl dark:bg-[#363537] bg-neutral-100/70 p-2 w-full backdrop-blur-xs">
+        <div className="flex flex-col items-center rounded-3xl dark:bg-[#212122] bg-neutral-100/70 p-2 w-full backdrop-blur-xs">
           {/* File Content Indicator */}
           {fileUrl && (
             <div className="mx-3 mb-2 w-full">

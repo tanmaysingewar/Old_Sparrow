@@ -246,9 +246,9 @@ export default function ChatPage({
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>(
-    "anthropic/claude-3-haiku-20250219"
-  );
+  // const [selectedModel, setSelectedModel] = useState<string>(
+  //   "anthropic/claude-3-haiku-20250219"
+  // );
   const [isLoadingChats, setIsLoadingChats] = useState(false);
   const { user, setUser, refreshSession } = useUserStore();
   const [chatTitle, setChatTitle] = useState<string>("Better Index");
@@ -261,7 +261,6 @@ export default function ChatPage({
   const inputBoxRef = useRef<InputBoxRef>(null);
 
   const anonymousSignInAttempted = useRef(false); // <-- Add this ref
-  const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [CopyClicked, setCopyClicked] = useState(false);
   const [chatShared, setChatShared] = useState(false);
@@ -654,23 +653,6 @@ export default function ChatPage({
     );
   };
 
-  // Helper function to find the last image response ID for multi-turn image generation
-  const getLastImageResponseId = (messages: Message[]): string | null => {
-    // Look through messages in reverse order to find the most recent image response ID
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
-      if (message.role === "assistant" && message.imageResponseId) {
-        console.log(
-          "Found previous image response ID:",
-          message.imageResponseId
-        );
-        return message.imageResponseId;
-      }
-    }
-    console.log("No previous image response ID found");
-    return null;
-  };
-
   const handleSendMessage = useCallback(
     async (
       messageContent: string,
@@ -718,7 +700,7 @@ export default function ChatPage({
           fileType: fileType || undefined,
           fileName: fileName || undefined,
         }),
-        model: selectedModel,
+        model: "anthropic/claude-3-haiku-20250219",
       };
 
       // --- Optimistic UI Update (using functional form) ---
@@ -780,26 +762,10 @@ export default function ChatPage({
             : editedMessage && messagesUpToEdit
             ? messagesUpToEdit
             : messages,
-          model: selectedModel,
+          model: "anthropic/claude-3-haiku-20250219",
           fileUrl: fileUrl,
           fileType: fileType,
           fileName: fileName,
-          openrouter_api_key:
-            localStorage.getItem("openrouter_api_key") == ""
-              ? ""
-              : localStorage.getItem("openrouter_api_key"),
-          openai_api_key:
-            localStorage.getItem("openai_api_key") == ""
-              ? ""
-              : localStorage.getItem("openai_api_key"),
-          anthropic_api_key:
-            localStorage.getItem("anthropic_api_key") == ""
-              ? ""
-              : localStorage.getItem("anthropic_api_key"),
-          google_api_key:
-            localStorage.getItem("google_api_key") == ""
-              ? ""
-              : localStorage.getItem("google_api_key"),
         };
       } else {
         console.log("No file uploaded");
@@ -810,26 +776,10 @@ export default function ChatPage({
             : editedMessage && messagesUpToEdit
             ? messagesUpToEdit
             : messages,
-          model: selectedModel,
+          model: "anthropic/claude-3-haiku-20250219",
           fileUrl: "",
           fileType: "",
           fileName: "",
-          openrouter_api_key:
-            localStorage.getItem("openrouter_api_key") == ""
-              ? ""
-              : localStorage.getItem("openrouter_api_key"),
-          openai_api_key:
-            localStorage.getItem("openai_api_key") == ""
-              ? ""
-              : localStorage.getItem("openai_api_key"),
-          anthropic_api_key:
-            localStorage.getItem("anthropic_api_key") == ""
-              ? ""
-              : localStorage.getItem("anthropic_api_key"),
-          google_api_key:
-            localStorage.getItem("google_api_key") == ""
-              ? ""
-              : localStorage.getItem("google_api_key"),
         };
       }
 
@@ -838,68 +788,15 @@ export default function ChatPage({
       setFileName("");
 
       try {
-        // Check if the selected model is the image generation model
-        const isImageGenerationModel = selectedModel === "openai/gpt-image-1";
-
-        let response;
-        if (isImageGenerationModel) {
-          // Get the last image response ID for multi-turn context
-          const currentMessages =
-            editedMessage && messagesUpToEdit ? messagesUpToEdit : messages;
-          const lastImageResponseId = getLastImageResponseId(currentMessages);
-
-          console.log("Image generation request:", {
-            isNewChat,
-            currentMessagesCount: currentMessages.length,
-            lastImageResponseId,
-            prompt: trimmedMessage.slice(0, 100),
-          });
-
-          // Use the image generation API
-          response = await fetch(
-            `/api/generate-image?shared=${
-              searchParams.get("shared") || false
-            }&editedMessage=${editedMessage}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Chat-ID": chatIdForRequest,
-              },
-              body: JSON.stringify({
-                messages: isNewChat
-                  ? [{ role: "user", content: trimmedMessage }]
-                  : editedMessage && messagesUpToEdit
-                  ? [
-                      ...messagesUpToEdit,
-                      { role: "user", content: trimmedMessage },
-                    ]
-                  : [...messages, { role: "user", content: trimmedMessage }],
-                previous_image_response_id: lastImageResponseId,
-                // Include file information for input images
-                fileUrl: fileUrl || "",
-                fileType: fileType || "",
-                fileName: fileName || "",
-                openrouter_api_key: localStorage.getItem("openrouter_api_key"),
-                openai_api_key: localStorage.getItem("openai_api_key"),
-                anthropic_api_key: localStorage.getItem("anthropic_api_key"),
-                google_api_key: localStorage.getItem("google_api_key"),
-              }),
-            }
-          );
-        } else {
-          // Make the LLM provider dynamic for regular chat
-          response = await fetch(
-            `/api/openai?shared=${
-              searchParams.get("shared") || false
-            }&editedMessage=${editedMessage}`,
-            {
-              method: "POST",
-              headers: requestHeaders,
-              body: JSON.stringify(requestBody),
-            }
-          );
-        }
+        // Make the API request for regular chat
+        const response = await fetch(
+          `/api/openai?editedMessage=${editedMessage}`,
+          {
+            method: "POST",
+            headers: requestHeaders,
+            body: JSON.stringify(requestBody),
+          }
+        );
 
         if (!response.ok) {
           let errorMsg = `Network response was not ok (${response.status})`;
@@ -939,339 +836,156 @@ export default function ChatPage({
           throw new Error(errorMsg);
         }
 
-        if (isImageGenerationModel) {
-          // Handle image generation response
-          const imageData = await response.json();
+        // Handle regular chat streaming response
+        // Get the header of the response
+        const get_header = response.headers.get("X-Title");
 
-          console.log("Image generation response:", {
-            url: imageData.url,
-            response_id: imageData.response_id,
-            hasResponseId: !!imageData.response_id,
-          });
+        console.log("X-Title", get_header);
 
-          // Get the header of the response (similar to regular chat)
-          const get_header = response.headers.get("X-Title");
-          const newChatId = response.headers.get("X-New-Chat-ID");
-          const convertedFromShared =
-            response.headers.get("X-Converted-From-Shared") === "true";
-
-          console.log("X-Title", get_header);
-          console.log("X-New-Chat-ID", newChatId);
-          console.log("X-Converted-From-Shared", convertedFromShared);
-
-          // Handle shared chat conversion to personal chat
-          if (convertedFromShared && newChatId) {
-            // Update the chat ID for the current conversation
-            chatIdForRequest = newChatId;
-            setCurrentChatId(newChatId);
-
-            // Update URL to remove shared parameter and use new chat ID
-            const newUrl = `/chat?chatId=${newChatId}`;
-            window.history.pushState({}, "", newUrl);
-
-            console.log(
-              `Shared chat converted to personal chat with ID: ${newChatId}`
-            );
-          }
-
-          if (
-            get_header &&
-            (!searchParams.get("shared") || convertedFromShared)
-          ) {
-            const chat = {
-              id: chatIdForRequest,
-              title: get_header!,
-              createdAt: new Date().toString(),
-            };
-
-            const added = addChatToCache(chat);
-            document.title = get_header;
-            setChatTitle(get_header); // Update the chatTitle state
-
-            if (added) {
-              console.log("Chat successfully added to the local cache.");
-            } else {
-              console.log("Failed to add chat to the local cache.");
-            }
-          } else if (
-            get_header &&
-            searchParams.get("shared") &&
-            !convertedFromShared
-          ) {
-            // For shared chats that remain shared, just update the title without caching
-            document.title = get_header;
-            setChatTitle(get_header);
-          }
-
-          // Create the final assistant message with the image
-          const finalAssistantMessage: Message = {
-            role: "assistant",
-            content: `![Generated Image](${imageData.url})`,
-            imageResponseId: imageData.response_id, // Store the response ID for multi-turn context
-            model: selectedModel,
+        if (get_header) {
+          const chat = {
+            id: chatIdForRequest,
+            title: get_header!,
+            createdAt: new Date().toString(),
           };
 
-          // Calculate the definitive final state
-          const finalMessagesState = [
-            ...messagesBeforeOptimisticUpdate,
-            newUserMessage,
-            finalAssistantMessage,
-          ];
+          const added = addChatToCache(chat);
+          document.title = get_header;
+          setChatTitle(get_header); // Update the chatTitle state
 
-          const currentChatId = searchParams.get("chatId");
-
-          if (currentChatId === chatIdForRequest) {
-            // Remove the loading message
-            setMessages((prevMessages) => {
-              if (prevMessages.length === 0) {
-                return prevMessages;
-              }
-              return prevMessages.slice(0, -1);
-            });
-
-            // Set the final state
-            setMessages(finalMessagesState);
+          if (added) {
+            console.log("Chat successfully added to the local cache.");
+          } else {
+            console.log("Failed to add chat to the local cache.");
           }
+        }
 
-          // Save to localStorage (save for personal chats and converted shared chats)
-          const currentSharedStatus = searchParams.get("shared");
-          const shouldSaveToLocalStorage =
-            !currentSharedStatus || convertedFromShared;
+        const reader = response.body?.getReader();
 
-          if (shouldSaveToLocalStorage) {
-            try {
-              localStorage.setItem(
-                getLocalStorageKey(chatIdForRequest),
-                JSON.stringify(finalMessagesState)
-              );
-              dispatchMessagesUpdatedEvent(
-                getLocalStorageKey(chatIdForRequest),
-                JSON.stringify(finalMessagesState)
-              );
-
-              // Only update URL if it hasn't been updated already by the conversion logic
-              if (!convertedFromShared) {
-                const currentSearchParams = new URLSearchParams(
-                  window.location.search
-                );
-                currentSearchParams.set("chatId", chatIdForRequest);
-                currentSearchParams.delete("shared");
-                window.history.pushState(
-                  {},
-                  "",
-                  `/chat?${currentSearchParams}`
-                );
-              }
-            } catch (lsError) {
-              console.error(
-                "Error saving final messages to Local Storage:",
-                lsError
-              );
-            }
-          }
-        } else {
-          // Handle regular chat streaming response
-          // Get the header of the response
-          const get_header = response.headers.get("X-Title");
-          const newChatId = response.headers.get("X-New-Chat-ID");
-          const convertedFromShared =
-            response.headers.get("X-Converted-From-Shared") === "true";
-
-          console.log("X-Title", get_header);
-          console.log("X-New-Chat-ID", newChatId);
-          console.log("X-Converted-From-Shared", convertedFromShared);
-
-          // Handle shared chat conversion to personal chat
-          if (convertedFromShared && newChatId) {
-            // Update the chat ID for the current conversation
-            chatIdForRequest = newChatId;
-            setCurrentChatId(newChatId);
-
-            // Update URL to remove shared parameter and use new chat ID
-            const newUrl = `/chat?chatId=${newChatId}`;
-            window.history.pushState({}, "", newUrl);
-
-            console.log(
-              `Shared chat converted to personal chat with ID: ${newChatId}`
-            );
-          }
-
-          if (
-            get_header &&
-            (!searchParams.get("shared") || convertedFromShared)
-          ) {
-            const chat = {
-              id: chatIdForRequest,
-              title: get_header!,
-              createdAt: new Date().toString(),
-            };
-
-            const added = addChatToCache(chat);
-            document.title = get_header;
-            setChatTitle(get_header); // Update the chatTitle state
-
-            if (added) {
-              console.log("Chat successfully added to the local cache.");
-            } else {
-              console.log("Failed to add chat to the local cache.");
-            }
-          } else if (
-            get_header &&
-            searchParams.get("shared") &&
-            !convertedFromShared
-          ) {
-            // For shared chats that remain shared, just update the title without caching
-            document.title = get_header;
-            setChatTitle(get_header);
-          }
-          const reader = response.body?.getReader();
-
-          const currentChatId = searchParams.get("chatId");
-          if (currentChatId === chatIdForRequest) {
-            if (!reader) {
-              setMessages(messagesBeforeOptimisticUpdate); // Revert
-              throw new Error("No reader available");
-            }
-
-            // remove the last message from setMessages
-            // To remove the last message:
-            setMessages((prevMessages) => {
-              // Check if there are any messages to remove
-              if (prevMessages.length === 0) {
-                return prevMessages; // Return the empty array if no messages exist
-              }
-              // Create a new array containing all elements except the last one
-              return prevMessages.slice(0, -1);
-            });
-
-            // Add placeholder for assistant message using functional update
-            setMessages((prev) => [
-              ...prev,
-              { role: "assistant", content: "" },
-            ]);
-          }
-
+        const currentChatId = searchParams.get("chatId");
+        if (currentChatId === chatIdForRequest) {
           if (!reader) {
+            setMessages(messagesBeforeOptimisticUpdate); // Revert
             throw new Error("No reader available");
           }
 
-          const decoder = new TextDecoder();
-          let accumulatedText = "";
-          while (true) {
-            const { done, value } = await reader?.read();
-            if (done) break;
-            accumulatedText += decoder.decode(value, { stream: true });
-
-            // Create the current assistant message with accumulated content
-            const currentAssistantMessage: Message = {
-              role: "assistant",
-              content: accumulatedText,
-              model: selectedModel,
-            };
-
-            // Calculate current state for localStorage
-            const currentMessagesState = [
-              ...messagesBeforeOptimisticUpdate,
-              newUserMessage,
-              currentAssistantMessage,
-            ];
-
-            const currentChatId = searchParams.get("chatId");
-            if (currentChatId === chatIdForRequest) {
-              // Update the streaming content using functional update
-              setMessages((prev) => {
-                if (prev.length === 0) return prev; // Should not happen
-                const updatedMessages = [...prev];
-                const lastMsgIndex = updatedMessages.length - 1;
-                // Ensure we are updating the last message and it's the assistant placeholder/stream
-                if (updatedMessages[lastMsgIndex].role === "assistant") {
-                  updatedMessages[lastMsgIndex].content = accumulatedText;
-                }
-                return updatedMessages;
-              });
+          // remove the last message from setMessages
+          // To remove the last message:
+          setMessages((prevMessages) => {
+            // Check if there are any messages to remove
+            if (prevMessages.length === 0) {
+              return prevMessages; // Return the empty array if no messages exist
             }
+            // Create a new array containing all elements except the last one
+            return prevMessages.slice(0, -1);
+          });
 
-            // Save current state to localStorage after each chunk (save for personal chats and converted shared chats)
-            const shouldSaveStreaming =
-              !searchParams.get("shared") || convertedFromShared;
-            if (shouldSaveStreaming) {
-              try {
-                localStorage.setItem(
-                  getLocalStorageKey(chatIdForRequest),
-                  JSON.stringify(currentMessagesState)
-                );
-                dispatchMessagesUpdatedEvent(
-                  getLocalStorageKey(chatIdForRequest),
-                  JSON.stringify(currentMessagesState)
-                );
-              } catch (lsError) {
-                console.error(
-                  "Error saving streaming chunk to Local Storage:",
-                  lsError
-                );
-                // Continue streaming even if localStorage fails
-              }
-            }
-          }
+          // Add placeholder for assistant message using functional update
+          setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+        }
 
-          // --- Final State Update & Local Storage ---
-          const finalAssistantMessage: Message = {
+        if (!reader) {
+          throw new Error("No reader available");
+        }
+
+        const decoder = new TextDecoder();
+        let accumulatedText = "";
+        while (true) {
+          const { done, value } = await reader?.read();
+          if (done) break;
+          accumulatedText += decoder.decode(value, { stream: true });
+
+          // Create the current assistant message with accumulated content
+          const currentAssistantMessage: Message = {
             role: "assistant",
-            content: accumulatedText || " ", // Use space if empty
-            model: selectedModel,
+            content: accumulatedText,
+            model: "anthropic/claude-3-haiku-20250219",
           };
 
-          // Calculate the definitive final state based on the state *before* the placeholder was added
-          // This ensures consistency even if rapid updates occurred.
-          const finalMessagesState = [
-            ...messagesBeforeOptimisticUpdate, // Start with state before optimistic user msg
-            newUserMessage, // Add the user message
-            finalAssistantMessage, // Add the final assistant message
+          // Calculate current state for localStorage
+          const currentMessagesState = [
+            ...messagesBeforeOptimisticUpdate,
+            newUserMessage,
+            currentAssistantMessage,
           ];
 
-          // Set the final state
-          setMessages(finalMessagesState);
-
-          // Save the definitive final state to Local Storage (save for personal chats and converted shared chats)
-          const shouldSaveFinal =
-            !searchParams.get("shared") || convertedFromShared;
-          if (shouldSaveFinal) {
-            try {
-              localStorage.setItem(
-                getLocalStorageKey(chatIdForRequest),
-                JSON.stringify(finalMessagesState) // Save the calculated final state
-              );
-              dispatchMessagesUpdatedEvent(
-                getLocalStorageKey(chatIdForRequest),
-                JSON.stringify(finalMessagesState)
-              );
-
-              // Only update URL if it hasn't been updated already by the conversion logic
-              if (!convertedFromShared) {
-                const currentSearchParams = new URLSearchParams(
-                  window.location.search
-                );
-                currentSearchParams.set("chatId", chatIdForRequest);
-                currentSearchParams.delete("shared");
-                window.history.pushState(
-                  {},
-                  "",
-                  `/chat?${currentSearchParams}`
-                );
+          const currentChatId = searchParams.get("chatId");
+          if (currentChatId === chatIdForRequest) {
+            // Update the streaming content using functional update
+            setMessages((prev) => {
+              if (prev.length === 0) return prev; // Should not happen
+              const updatedMessages = [...prev];
+              const lastMsgIndex = updatedMessages.length - 1;
+              // Ensure we are updating the last message and it's the assistant placeholder/stream
+              if (updatedMessages[lastMsgIndex].role === "assistant") {
+                updatedMessages[lastMsgIndex].content = accumulatedText;
               }
-            } catch (lsError) {
-              console.error(
-                "Error saving final messages to Local Storage:",
-                lsError
-              );
-            }
+              return updatedMessages;
+            });
           }
+
+          // Save current state to localStorage after each chunk
+          try {
+            localStorage.setItem(
+              getLocalStorageKey(chatIdForRequest),
+              JSON.stringify(currentMessagesState)
+            );
+            dispatchMessagesUpdatedEvent(
+              getLocalStorageKey(chatIdForRequest),
+              JSON.stringify(currentMessagesState)
+            );
+          } catch (lsError) {
+            console.error(
+              "Error saving streaming chunk to Local Storage:",
+              lsError
+            );
+            // Continue streaming even if localStorage fails
+          }
+        }
+
+        // --- Final State Update & Local Storage ---
+        const finalAssistantMessage: Message = {
+          role: "assistant",
+          content: accumulatedText || " ", // Use space if empty
+          model: "anthropic/claude-3-haiku-20250219",
+        };
+
+        // Calculate the definitive final state based on the state *before* the placeholder was added
+        // This ensures consistency even if rapid updates occurred.
+        const finalMessagesState = [
+          ...messagesBeforeOptimisticUpdate, // Start with state before optimistic user msg
+          newUserMessage, // Add the user message
+          finalAssistantMessage, // Add the final assistant message
+        ];
+
+        // Set the final state
+        setMessages(finalMessagesState);
+
+        // Save the definitive final state to Local Storage
+        try {
+          localStorage.setItem(
+            getLocalStorageKey(chatIdForRequest),
+            JSON.stringify(finalMessagesState) // Save the calculated final state
+          );
+          dispatchMessagesUpdatedEvent(
+            getLocalStorageKey(chatIdForRequest),
+            JSON.stringify(finalMessagesState)
+          );
+
+          const currentSearchParams = new URLSearchParams(
+            window.location.search
+          );
+          currentSearchParams.set("chatId", chatIdForRequest);
+          window.history.pushState({}, "", `/chat?${currentSearchParams}`);
+        } catch (lsError) {
+          console.error(
+            "Error saving final messages to Local Storage:",
+            lsError
+          );
         }
       } catch (error) {
         // console.error("Error sending message:", error);
         // Update UI with error, keeping user message but removing potential placeholder
-
-        // Raise a tost
 
         setMessages((prev) => {
           const currentMessages = prev.filter(
@@ -1290,7 +1004,7 @@ export default function ChatPage({
             {
               role: "assistant",
               content: `${error}`,
-              model: selectedModel,
+              model: "anthropic/claude-3-haiku-20250219",
             },
           ];
         });
@@ -1305,7 +1019,6 @@ export default function ChatPage({
       currentChatId,
       router,
       messages,
-      selectedModel,
       fileUrl,
       fileType,
       fileName,
@@ -1317,23 +1030,8 @@ export default function ChatPage({
   useEffect(() => {
     if (!isGenerating && currentChatId !== null) {
       handleSendMessage("", false); // Trigger send
-      console.log(isChatHistoryOpen);
     }
   }, [isGenerating, messages, currentChatId, router, handleSendMessage]);
-
-  // Effect: Update selectedModel to match the last message's model
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Find the last message that has a model property
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const message = messages[i];
-        if (message.model) {
-          setSelectedModel(message.model);
-          break;
-        }
-      }
-    }
-  }, [messages]);
 
   const inputBoxHeight = 58; // From your InputBox prop
 
@@ -1616,11 +1314,7 @@ export default function ChatPage({
           "hidden lg:block max-w-[300px] w-full h-full fixed md:relative z-50 transition-transform duration-200 ease-in-out scrollbar-hide"
         )}
       >
-        <ChatHistoryDesktop
-          onClose={() => setIsChatHistoryOpen(false)}
-          isNewUser={isNewUser}
-          isLoading={isLoadingChats}
-        />
+        <ChatHistoryDesktop isNewUser={isNewUser} isLoading={isLoadingChats} />
       </div>
 
       {/* Main Chat Area */}

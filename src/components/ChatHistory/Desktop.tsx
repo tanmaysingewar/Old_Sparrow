@@ -7,11 +7,9 @@ import React, {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
-import { Pacifico } from "next/font/google";
 import { Button } from "../ui/button";
 import { useUserStore } from "@/store/userStore";
-import { User, Trash2, Edit3, Check, X, GitBranch, Image } from "lucide-react";
+import { User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import Settings from "../Setting";
 import { authClient } from "@/lib/auth-client";
@@ -19,12 +17,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
 import { CHAT_CACHE_UPDATED_EVENT } from "@/support/fetchChats";
 import { DialogTitle } from "@radix-ui/react-dialog";
-
-const pacifico = Pacifico({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-pacifico",
-});
 
 // Interface for individual chat items
 interface Chat {
@@ -90,13 +82,11 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 interface ChatHistoryProps {
-  onClose: () => void;
   isNewUser?: boolean;
   isLoading?: boolean;
 }
 
 export default function ChatHistoryDesktop({
-  onClose,
   isNewUser = true,
   isLoading: isLoadingProp = false,
 }: ChatHistoryProps) {
@@ -105,10 +95,10 @@ export default function ChatHistoryDesktop({
   const [isLoadingCache, setIsLoadingCache] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
-  const [editingChatId, setEditingChatId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
-  const [updatingChatId, setUpdatingChatId] = useState<string | null>(null);
+  // const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
+  // const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  // const [editingTitle, setEditingTitle] = useState("");
+  // const [updatingChatId, setUpdatingChatId] = useState<string | null>(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [openSettings, setOpenSettings] = useState(false);
   const { user } = useUserStore();
@@ -178,28 +168,20 @@ export default function ChatHistoryDesktop({
   const rowVirtualizer = useVirtualizer({
     count: displayedChats.length,
     getScrollElement: () => chatListRef.current,
-    estimateSize: () => 40, // Height of each chat item
+    estimateSize: () => 55, // Height of each chat item
     overscan: 5,
   });
 
   const handleChatClick = useCallback(
     (chatId: string, chatTitle: string) => {
-      const currentPath = window.location.pathname;
       const currentSearchParams = new URLSearchParams(window.location.search);
-      const currentChatId = currentSearchParams.get("chatId");
-
-      if (currentPath === "/chat" && currentChatId === chatId) {
-        onClose(); // Already on the page, just close sidebar
-        return;
-      }
 
       document.title = chatTitle + " - Better Index";
       currentSearchParams.set("chatId", chatId);
       currentSearchParams.delete("new");
       window.history.pushState({}, "", `/chat?${currentSearchParams}`);
-      onClose();
     },
-    [router, onClose]
+    [router]
   );
 
   const handleNewChatClick = useCallback(() => {
@@ -216,157 +198,157 @@ export default function ChatHistoryDesktop({
   }, [searchParams]);
 
   // Handle chat deletion
-  const handleDeleteChat = useCallback(
-    async (chatId: string, event: React.MouseEvent) => {
-      event.stopPropagation(); // Prevent chat click when deleting
+  // const handleDeleteChat = useCallback(
+  //   async (chatId: string, event: React.MouseEvent) => {
+  //     event.stopPropagation(); // Prevent chat click when deleting
 
-      if (deletingChatId) return; // Prevent multiple deletions
+  //     if (deletingChatId) return; // Prevent multiple deletions
 
-      setDeletingChatId(chatId);
+  //     setDeletingChatId(chatId);
 
-      try {
-        const response = await fetch(`/api/chat/${chatId}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
+  //     try {
+  //       const response = await fetch(`/api/chat/${chatId}`, {
+  //         method: "DELETE",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         credentials: "include",
+  //       });
 
-        if (!response.ok) {
-          throw new Error("Failed to delete chat");
-        }
+  //       if (!response.ok) {
+  //         throw new Error("Failed to delete chat");
+  //       }
 
-        // Update local cache immediately for better UX
-        setCacheData((prevData) => {
-          if (!prevData) return prevData;
+  //       // Update local cache immediately for better UX
+  //       setCacheData((prevData) => {
+  //         if (!prevData) return prevData;
 
-          const updatedChats = prevData.chats.filter(
-            (chat) => chat.id !== chatId
-          );
-          const updatedData = {
-            ...prevData,
-            chats: updatedChats,
-            totalChats: updatedChats.length,
-            timestamp: Date.now(),
-          };
+  //         const updatedChats = prevData.chats.filter(
+  //           (chat) => chat.id !== chatId
+  //         );
+  //         const updatedData = {
+  //           ...prevData,
+  //           chats: updatedChats,
+  //           totalChats: updatedChats.length,
+  //           timestamp: Date.now(),
+  //         };
 
-          // Update localStorage
-          localStorage.setItem(CACHE_KEY, JSON.stringify(updatedData));
+  //         // Update localStorage
+  //         localStorage.setItem(CACHE_KEY, JSON.stringify(updatedData));
 
-          // Dispatch event to notify other components
-          window.dispatchEvent(new CustomEvent(CHAT_CACHE_UPDATED_EVENT));
+  //         // Dispatch event to notify other components
+  //         window.dispatchEvent(new CustomEvent(CHAT_CACHE_UPDATED_EVENT));
 
-          return updatedData;
-        });
+  //         return updatedData;
+  //       });
 
-        // If we deleted the currently active chat, redirect to new chat
-        const currentChatId = searchParams.get("chatId");
-        if (currentChatId === chatId) {
-          handleNewChatClick();
-        }
-      } catch (error) {
-        console.error("Error deleting chat:", error);
-        setError("Failed to delete chat. Please try again.");
-      } finally {
-        setDeletingChatId(null);
-      }
-    },
-    [deletingChatId, searchParams, handleNewChatClick]
-  );
+  //       // If we deleted the currently active chat, redirect to new chat
+  //       const currentChatId = searchParams.get("chatId");
+  //       if (currentChatId === chatId) {
+  //         handleNewChatClick();
+  //       }
+  //     } catch (error) {
+  //       console.error("Error deleting chat:", error);
+  //       setError("Failed to delete chat. Please try again.");
+  //     } finally {
+  //       setDeletingChatId(null);
+  //     }
+  //   },
+  //   [deletingChatId, searchParams, handleNewChatClick]
+  // );
 
   // Handle starting chat title edit
-  const handleStartEditTitle = useCallback(
-    (chatId: string, currentTitle: string, event: React.MouseEvent) => {
-      event.stopPropagation(); // Prevent chat click when editing
-      setEditingChatId(chatId);
-      setEditingTitle(currentTitle || "Untitled Chat");
-    },
-    []
-  );
+  // const handleStartEditTitle = useCallback(
+  //   (chatId: string, currentTitle: string, event: React.MouseEvent) => {
+  //     event.stopPropagation(); // Prevent chat click when editing
+  //     setEditingChatId(chatId);
+  //     setEditingTitle(currentTitle || "Untitled Chat");
+  //   },
+  //   []
+  // );
 
   // Handle saving chat title edit
-  const handleSaveEditTitle = useCallback(
-    async (chatId: string, event?: React.MouseEvent) => {
-      if (event) {
-        event.stopPropagation(); // Prevent chat click when saving
-      }
+  // const handleSaveEditTitle = useCallback(
+  //   async (chatId: string, event?: React.MouseEvent) => {
+  //     if (event) {
+  //       event.stopPropagation(); // Prevent chat click when saving
+  //     }
 
-      if (updatingChatId || !editingTitle.trim()) return;
+  //     if (updatingChatId || !editingTitle.trim()) return;
 
-      setUpdatingChatId(chatId);
+  //     setUpdatingChatId(chatId);
 
-      try {
-        const response = await fetch(`/api/chat/${chatId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ title: editingTitle.trim() }),
-        });
+  //     try {
+  //       const response = await fetch(`/api/chat/${chatId}`, {
+  //         method: "PATCH",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         credentials: "include",
+  //         body: JSON.stringify({ title: editingTitle.trim() }),
+  //       });
 
-        if (!response.ok) {
-          throw new Error("Failed to update chat title");
-        }
+  //       if (!response.ok) {
+  //         throw new Error("Failed to update chat title");
+  //       }
 
-        // Update local cache immediately for better UX
-        setCacheData((prevData) => {
-          if (!prevData) return prevData;
+  //       // Update local cache immediately for better UX
+  //       setCacheData((prevData) => {
+  //         if (!prevData) return prevData;
 
-          const updatedChats = prevData.chats.map((chat) =>
-            chat.id === chatId ? { ...chat, title: editingTitle.trim() } : chat
-          );
-          const updatedData = {
-            ...prevData,
-            chats: updatedChats,
-            timestamp: Date.now(),
-          };
+  //         const updatedChats = prevData.chats.map((chat) =>
+  //           chat.id === chatId ? { ...chat, title: editingTitle.trim() } : chat
+  //         );
+  //         const updatedData = {
+  //           ...prevData,
+  //           chats: updatedChats,
+  //           timestamp: Date.now(),
+  //         };
 
-          // Update localStorage
-          localStorage.setItem(CACHE_KEY, JSON.stringify(updatedData));
+  //         // Update localStorage
+  //         localStorage.setItem(CACHE_KEY, JSON.stringify(updatedData));
 
-          // Dispatch event to notify other components
-          window.dispatchEvent(new CustomEvent(CHAT_CACHE_UPDATED_EVENT));
+  //         // Dispatch event to notify other components
+  //         window.dispatchEvent(new CustomEvent(CHAT_CACHE_UPDATED_EVENT));
 
-          return updatedData;
-        });
+  //         return updatedData;
+  //       });
 
-        // Clear editing state
-        setEditingChatId(null);
-        setEditingTitle("");
-      } catch (error) {
-        console.error("Error updating chat title:", error);
-        setError("Failed to update chat title. Please try again.");
-      } finally {
-        setUpdatingChatId(null);
-      }
-    },
-    [editingTitle, updatingChatId]
-  );
+  //       // Clear editing state
+  //       setEditingChatId(null);
+  //       setEditingTitle("");
+  //     } catch (error) {
+  //       console.error("Error updating chat title:", error);
+  //       setError("Failed to update chat title. Please try again.");
+  //     } finally {
+  //       setUpdatingChatId(null);
+  //     }
+  //   },
+  //   [editingTitle, updatingChatId]
+  // );
 
   // Handle canceling chat title edit
-  const handleCancelEditTitle = useCallback((event?: React.MouseEvent) => {
-    if (event) {
-      event.stopPropagation(); // Prevent chat click when canceling
-    }
-    setEditingChatId(null);
-    setEditingTitle("");
-  }, []);
+  // const handleCancelEditTitle = useCallback((event?: React.MouseEvent) => {
+  //   if (event) {
+  //     event.stopPropagation(); // Prevent chat click when canceling
+  //   }
+  //   setEditingChatId(null);
+  //   setEditingTitle("");
+  // }, []);
 
   // Handle keyboard events in edit mode
-  const handleEditKeyDown = useCallback(
-    (event: React.KeyboardEvent, chatId: string) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        handleSaveEditTitle(chatId);
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        handleCancelEditTitle();
-      }
-    },
-    [handleSaveEditTitle, handleCancelEditTitle]
-  );
+  // const handleEditKeyDown = useCallback(
+  //   (event: React.KeyboardEvent, chatId: string) => {
+  //     if (event.key === "Enter") {
+  //       event.preventDefault();
+  //       handleSaveEditTitle(chatId);
+  //     } else if (event.key === "Escape") {
+  //       event.preventDefault();
+  //       handleCancelEditTitle();
+  //     }
+  //   },
+  //   [handleSaveEditTitle, handleCancelEditTitle]
+  // );
 
   // Handle chat navigation shortcuts
   const handleChatNavigation = useCallback(
@@ -432,26 +414,23 @@ export default function ChatHistoryDesktop({
 
   return (
     <div className="flex flex-col h-full dark:bg-[#212122] bg-[#ebebeb] select-none">
-      <span className={cn("text-xl text-center mt-5", pacifico.className)}>
+      {/* <span className={cn("text-xl text-center mt-5", pacifico.className)}>
         {" "}
         Better Index
-      </span>
+      </span> */}
       <Button
         onClick={handleNewChatClick}
-        className="mx-3 mt-3 cursor-pointer dark:bg-[#323233] bg-white"
+        className="mx-3 mt-8 cursor-pointer dark:bg-[#323233] bg-white"
         variant="secondary"
       >
         <p className="text-[14px] font-semibold flex flex-row items-center gap-2">
           New Task{" "}
-          {/* <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
+          <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
             ⌘
           </span>
           <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
-            Shift
+            K
           </span>
-          <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
-            O
-          </span> */}
         </p>
       </Button>
       <div className="flex-shrink-0 text-center mt-5">
@@ -497,9 +476,9 @@ export default function ChatHistoryDesktop({
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const chat = displayedChats[virtualRow.index];
-                const isDeleting = deletingChatId === chat.id;
-                const isEditing = editingChatId === chat.id;
-                const isUpdating = updatingChatId === chat.id;
+                const isDeleting = "1" === chat.id;
+                const isEditing = "1" === chat.id;
+                const isUpdating = "1" === chat.id;
 
                 return (
                   <div
@@ -526,9 +505,9 @@ export default function ChatHistoryDesktop({
                     }
                   >
                     <div
-                      className={`hover:bg-neutral-200 dark:hover:bg-[#161618] cursor-pointer rounded-sm p-2 px-3 transition-colors duration-150 group relative ${
+                      className={`hover:bg-neutral-200 dark:hover:bg-[#1a1a1a] cursor-pointer rounded-sm p-2 px-3 transition-colors duration-150 group relative ${
                         currentChatId === chat.id
-                          ? "bg-white dark:bg-[#161618] hover:bg-white"
+                          ? "bg-white dark:bg-[#1a1a1a] hover:bg-white"
                           : ""
                       } ${
                         isDeleting || isUpdating
@@ -537,106 +516,18 @@ export default function ChatHistoryDesktop({
                       } ${isEditing ? "cursor-default" : ""}`}
                     >
                       <div className="flex items-center justify-between">
-                        {isEditing ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="text"
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onKeyDown={(e) => handleEditKeyDown(e, chat.id)}
-                              onBlur={() => handleSaveEditTitle(chat.id)}
-                              className="text-sm font-medium bg-transparent border-b border-neutral-400 dark:border-neutral-500 focus:border-neutral-600 dark:focus:border-neutral-300 outline-none flex-1 px-1"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={(e) => handleSaveEditTitle(chat.id, e)}
-                                disabled={isUpdating || !editingTitle.trim()}
-                                className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded text-green-600 hover:text-green-500 dark:hover:text-green-400 flex-shrink-0 disabled:opacity-50"
-                                title="Save"
-                              >
-                                {isUpdating ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Check className="h-3 w-3" />
-                                )}
-                              </button>
-                              <button
-                                onClick={handleCancelEditTitle}
-                                disabled={isUpdating}
-                                className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-400 hover:text-red-300 dark:hover:text-red-400 flex-shrink-0 disabled:opacity-50"
-                                title="Cancel"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
+                        <>
+                          <div className="">
                             <p className="text-sm font-medium truncate flex-1">
                               <span className="flex flex-row items-center">
-                                {(() => {
-                                  const isBranched =
-                                    chat.title?.startsWith("Branched - ");
-                                  const isImage =
-                                    chat.title?.includes("Image:");
-                                  let displayTitle =
-                                    chat.title || "Untitled Chat";
-
-                                  // Remove prefixes for display
-                                  if (isBranched) {
-                                    displayTitle = displayTitle.replace(
-                                      "Branched - ",
-                                      ""
-                                    );
-                                  }
-                                  if (isImage) {
-                                    displayTitle = displayTitle
-                                      .replace("Image:", "")
-                                      .trim();
-                                  }
-
-                                  return (
-                                    <>
-                                      {isBranched && (
-                                        <GitBranch className="h-4 w-4 mr-1 text-neutral-600 dark:text-neutral-400 flex-shrink-0" />
-                                      )}
-                                      {isImage && (
-                                        <Image className="h-4 w-4 mr-2 text-neutral-600 dark:text-neutral-400 flex-shrink-0" />
-                                      )}
-                                      {displayTitle || "Untitled Chat"}
-                                    </>
-                                  );
-                                })()}
+                                {chat.title || "Untitled Chat"}
                               </span>
                             </p>
-                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-neutral-200 dark:bg-[#161618] px-1 rounded">
-                              <button
-                                onClick={(e) =>
-                                  handleStartEditTitle(chat.id, chat.title, e)
-                                }
-                                disabled={isDeleting}
-                                className="p-1 hover:bg-blue-100 dark:hover:bg-neutral-600 rounded text-neutral-600 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300 flex-shrink-0 cursor-pointer"
-                                title="Edit title"
-                              >
-                                <Edit3 className="h-3 w-3" />
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteChat(chat.id, e)}
-                                disabled={isDeleting}
-                                className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-neutral-600 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-400 flex-shrink-0 cursor-pointer"
-                                title="Delete chat"
-                              >
-                                {isDeleting ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3 w-3" />
-                                )}
-                              </button>
-                            </div>
-                          </>
-                        )}
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                              {"Health Insurance"}
+                            </p>
+                          </div>
+                        </>
                       </div>
                     </div>
                   </div>
