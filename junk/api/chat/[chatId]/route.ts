@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers as nextHeaders } from "next/headers";
 import { db } from "@/database/db";
-import { auth } from "@/lib/auth";
+// import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { chat, messages } from "@/database/schema/auth-schema";
 

@@ -12,60 +12,21 @@ import { useUserStore } from "@/store/userStore";
 import { User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import Settings from "../Setting";
-import { authClient } from "@/lib/auth-client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
-import { CHAT_CACHE_UPDATED_EVENT } from "@/support/fetchChats";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import { api } from "../../../convex/_generated/api";
+import { useQuery } from "convex/react";
 
 // Interface for individual chat items
 interface Chat {
   id: string;
   title: string;
   createdAt: string;
+  isShared: boolean;
+  userId: string;
+  category: string;
 }
-
-// Interface for the NEW structure stored in localStorage
-interface RawCacheData {
-  chats: Chat[];
-  totalChats: number;
-  timestamp: number;
-}
-
-// Updated cache key
-const CACHE_KEY = "chatHistoryCache";
-
-// Updated function to load data from the new cache format
-const loadFromCache = (): RawCacheData | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    const data: RawCacheData = JSON.parse(cached);
-
-    // Validate the new structure
-    if (
-      !data ||
-      !Array.isArray(data.chats) ||
-      typeof data.totalChats !== "number" ||
-      typeof data.timestamp !== "number"
-    ) {
-      console.warn(
-        "Invalid cache structure found for key",
-        CACHE_KEY,
-        ". Clearing."
-      );
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Failed to load or parse cache:", error);
-    localStorage.removeItem(CACHE_KEY);
-    return null;
-  }
-};
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -90,16 +51,9 @@ export default function ChatHistoryDesktop({
   isNewUser = true,
   isLoading: isLoadingProp = false,
 }: ChatHistoryProps) {
-  // Use a single source of truth for all chats data
-  const [cacheData, setCacheData] = useState<RawCacheData | null>(null);
-  const [isLoadingCache, setIsLoadingCache] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  // const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
-  // const [editingChatId, setEditingChatId] = useState<string | null>(null);
-  // const [editingTitle, setEditingTitle] = useState("");
-  // const [updatingChatId, setUpdatingChatId] = useState<string | null>(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [openSettings, setOpenSettings] = useState(false);
   const { user } = useUserStore();
   const router = useRouter();
@@ -107,62 +61,35 @@ export default function ChatHistoryDesktop({
 
   // Reference for the chat list container
   const chatListRef = useRef<HTMLDivElement>(null);
-  // Reference for the search input
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const getChats = useQuery(api.chats.get);
 
-  // Load cache data only once on component mount or when localStorage changes
   useEffect(() => {
-    const loadCacheData = () => {
-      setIsLoadingCache(true);
-      try {
-        const data = loadFromCache();
-        setCacheData(data);
-      } catch (err) {
-        console.error("Error loading cache data:", err);
-        setError("Failed to load chat history from cache.");
-        console.log(error);
-      } finally {
-        setIsLoadingCache(false);
-      }
-    };
-
-    loadCacheData();
-
-    // Listen for both storage changes (from other tabs) and our custom event (same tab)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === CACHE_KEY) {
-        console.log("Chat history cache updated in localStorage");
-        loadCacheData();
-      }
-    };
-
-    const handleCacheUpdate = () => {
-      console.log("Chat history cache updated in current tab");
-      loadCacheData();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener(CHAT_CACHE_UPDATED_EVENT, handleCacheUpdate);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(CHAT_CACHE_UPDATED_EVENT, handleCacheUpdate);
-    };
-  }, []);
+    setChats(
+      getChats?.map((chat) => ({
+        id: chat._id,
+        title: chat.title,
+        createdAt: chat.createdAt.toString(),
+        isShared: chat.isShared || false,
+        userId: chat.userId,
+        category: chat.category || "Untitled Chat",
+      })) || []
+    );
+  }, [getChats]);
 
   // Filter chats based on search term - computed only when dependencies change
   const displayedChats = useMemo(() => {
-    if (!cacheData?.chats) return [];
+    if (!chats) return [];
 
     if (!debouncedSearchTerm) {
-      return cacheData.chats;
+      return chats;
     }
 
     const searchTermLower = debouncedSearchTerm.toLowerCase();
-    return cacheData.chats.filter((chat) =>
+    return chats.filter((chat) =>
       (chat.title || "Untitled Chat").toLowerCase().includes(searchTermLower)
     );
-  }, [cacheData, debouncedSearchTerm]);
+  }, [chats, debouncedSearchTerm]);
 
   // Setup virtualization
   const rowVirtualizer = useVirtualizer({
@@ -196,221 +123,6 @@ export default function ChatHistoryDesktop({
   const currentChatId = useMemo(() => {
     return searchParams.get("chatId");
   }, [searchParams]);
-
-  // Handle chat deletion
-  // const handleDeleteChat = useCallback(
-  //   async (chatId: string, event: React.MouseEvent) => {
-  //     event.stopPropagation(); // Prevent chat click when deleting
-
-  //     if (deletingChatId) return; // Prevent multiple deletions
-
-  //     setDeletingChatId(chatId);
-
-  //     try {
-  //       const response = await fetch(`/api/chat/${chatId}`, {
-  //         method: "DELETE",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         credentials: "include",
-  //       });
-
-  //       if (!response.ok) {
-  //         throw new Error("Failed to delete chat");
-  //       }
-
-  //       // Update local cache immediately for better UX
-  //       setCacheData((prevData) => {
-  //         if (!prevData) return prevData;
-
-  //         const updatedChats = prevData.chats.filter(
-  //           (chat) => chat.id !== chatId
-  //         );
-  //         const updatedData = {
-  //           ...prevData,
-  //           chats: updatedChats,
-  //           totalChats: updatedChats.length,
-  //           timestamp: Date.now(),
-  //         };
-
-  //         // Update localStorage
-  //         localStorage.setItem(CACHE_KEY, JSON.stringify(updatedData));
-
-  //         // Dispatch event to notify other components
-  //         window.dispatchEvent(new CustomEvent(CHAT_CACHE_UPDATED_EVENT));
-
-  //         return updatedData;
-  //       });
-
-  //       // If we deleted the currently active chat, redirect to new chat
-  //       const currentChatId = searchParams.get("chatId");
-  //       if (currentChatId === chatId) {
-  //         handleNewChatClick();
-  //       }
-  //     } catch (error) {
-  //       console.error("Error deleting chat:", error);
-  //       setError("Failed to delete chat. Please try again.");
-  //     } finally {
-  //       setDeletingChatId(null);
-  //     }
-  //   },
-  //   [deletingChatId, searchParams, handleNewChatClick]
-  // );
-
-  // Handle starting chat title edit
-  // const handleStartEditTitle = useCallback(
-  //   (chatId: string, currentTitle: string, event: React.MouseEvent) => {
-  //     event.stopPropagation(); // Prevent chat click when editing
-  //     setEditingChatId(chatId);
-  //     setEditingTitle(currentTitle || "Untitled Chat");
-  //   },
-  //   []
-  // );
-
-  // Handle saving chat title edit
-  // const handleSaveEditTitle = useCallback(
-  //   async (chatId: string, event?: React.MouseEvent) => {
-  //     if (event) {
-  //       event.stopPropagation(); // Prevent chat click when saving
-  //     }
-
-  //     if (updatingChatId || !editingTitle.trim()) return;
-
-  //     setUpdatingChatId(chatId);
-
-  //     try {
-  //       const response = await fetch(`/api/chat/${chatId}`, {
-  //         method: "PATCH",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         credentials: "include",
-  //         body: JSON.stringify({ title: editingTitle.trim() }),
-  //       });
-
-  //       if (!response.ok) {
-  //         throw new Error("Failed to update chat title");
-  //       }
-
-  //       // Update local cache immediately for better UX
-  //       setCacheData((prevData) => {
-  //         if (!prevData) return prevData;
-
-  //         const updatedChats = prevData.chats.map((chat) =>
-  //           chat.id === chatId ? { ...chat, title: editingTitle.trim() } : chat
-  //         );
-  //         const updatedData = {
-  //           ...prevData,
-  //           chats: updatedChats,
-  //           timestamp: Date.now(),
-  //         };
-
-  //         // Update localStorage
-  //         localStorage.setItem(CACHE_KEY, JSON.stringify(updatedData));
-
-  //         // Dispatch event to notify other components
-  //         window.dispatchEvent(new CustomEvent(CHAT_CACHE_UPDATED_EVENT));
-
-  //         return updatedData;
-  //       });
-
-  //       // Clear editing state
-  //       setEditingChatId(null);
-  //       setEditingTitle("");
-  //     } catch (error) {
-  //       console.error("Error updating chat title:", error);
-  //       setError("Failed to update chat title. Please try again.");
-  //     } finally {
-  //       setUpdatingChatId(null);
-  //     }
-  //   },
-  //   [editingTitle, updatingChatId]
-  // );
-
-  // Handle canceling chat title edit
-  // const handleCancelEditTitle = useCallback((event?: React.MouseEvent) => {
-  //   if (event) {
-  //     event.stopPropagation(); // Prevent chat click when canceling
-  //   }
-  //   setEditingChatId(null);
-  //   setEditingTitle("");
-  // }, []);
-
-  // Handle keyboard events in edit mode
-  // const handleEditKeyDown = useCallback(
-  //   (event: React.KeyboardEvent, chatId: string) => {
-  //     if (event.key === "Enter") {
-  //       event.preventDefault();
-  //       handleSaveEditTitle(chatId);
-  //     } else if (event.key === "Escape") {
-  //       event.preventDefault();
-  //       handleCancelEditTitle();
-  //     }
-  //   },
-  //   [handleSaveEditTitle, handleCancelEditTitle]
-  // );
-
-  // Handle chat navigation shortcuts
-  const handleChatNavigation = useCallback(
-    (event: KeyboardEvent) => {
-      // Check for cmd/ctrl + [ or ]
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-      const modifierKey = isMac ? event.metaKey : event.ctrlKey;
-
-      if (!modifierKey || displayedChats.length === 0) return;
-
-      if (event.key === "[" || event.key === "]") {
-        event.preventDefault();
-
-        const currentIndex = displayedChats.findIndex(
-          (chat) => chat.id === currentChatId
-        );
-
-        if (event.key === "[") {
-          // Previous chat
-          const prevIndex =
-            currentIndex > 0 ? currentIndex - 1 : displayedChats.length - 1;
-          const prevChat = displayedChats[prevIndex];
-          if (prevChat) {
-            handleChatClick(prevChat.id, prevChat.title);
-          }
-        } else if (event.key === "]") {
-          // Next chat
-          const nextIndex =
-            currentIndex < displayedChats.length - 1 ? currentIndex + 1 : 0;
-          const nextChat = displayedChats[nextIndex];
-          if (nextChat) {
-            handleChatClick(nextChat.id, nextChat.title);
-          }
-        }
-      }
-
-      // Handle search focus shortcut (cmd/ctrl + k)
-      if (event.key === "k" || event.key === "K") {
-        event.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
-      }
-    },
-    [displayedChats, currentChatId, handleChatClick]
-  );
-
-  // Add keyboard event listeners for chat navigation
-  useEffect(() => {
-    document.addEventListener("keydown", handleChatNavigation);
-    return () => {
-      document.removeEventListener("keydown", handleChatNavigation);
-    };
-  }, [handleChatNavigation]);
-
-  // Determine UI states
-  const hasChats = cacheData?.chats && cacheData.chats.length > 0;
-  const showEmptySearchResults =
-    !isLoadingCache &&
-    !isLoadingProp &&
-    hasChats &&
-    displayedChats.length === 0 &&
-    !!debouncedSearchTerm;
 
   return (
     <div className="flex flex-col h-full dark:bg-[#212122] bg-[#ebebeb] select-none">
@@ -447,19 +159,13 @@ export default function ChatHistoryDesktop({
         ref={chatListRef}
         className="flex-1 overflow-y-auto no-scrollbar h-screen relative"
       >
-        {(isLoadingCache || isLoadingProp) && (
+        {isLoadingProp && (
           <div className="flex justify-center items-center py-2 bg-[#212122]/5 backdrop-blur-xs z-10 sticky top-0">
             <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
           </div>
         )}
 
-        {showEmptySearchResults && (
-          <p className="text-center text-gray-500 text-sm mx-10 mt-8">
-            {`No chats found matching "${debouncedSearchTerm}"`}
-          </p>
-        )}
-
-        {displayedChats.length === 0 && !showEmptySearchResults && (
+        {displayedChats.length === 0 && (
           <p className="text-center text-gray-500 text-sm mt-8 ">
             {`No chats found`}
           </p>
@@ -524,7 +230,7 @@ export default function ChatHistoryDesktop({
                               </span>
                             </p>
                             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                              {"Health Insurance"}
+                              {chat.category || "Untitled Chat"}
                             </p>
                           </div>
                         </>
@@ -585,17 +291,7 @@ export default function ChatHistoryDesktop({
 const SignInComponent = () => {
   const [signLoading, setSignLoading] = useState(false);
   return (
-    <Button
-      className="cursor-pointer mx-2 mt-3 mb-2"
-      onClick={async () => {
-        setSignLoading(true);
-        await authClient.signIn.social({
-          provider: "google",
-          callbackURL: "/chat?login=true",
-        });
-      }}
-      disabled={signLoading}
-    >
+    <Button className="cursor-pointer mx-2 mt-3 mb-2" disabled={signLoading}>
       {signLoading ? (
         <svg
           fill="#000000"

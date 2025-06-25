@@ -11,8 +11,6 @@ interface Message {
   fileUrl?: string;
   fileType?: string;
   fileName?: string;
-  imageResponseId?: string; // For tracking OpenAI image generation response IDs
-  model?: string; // Model name used for the message
 }
 
 interface RenderMessageProps {
@@ -107,10 +105,10 @@ const RenderMessageOnScreen = ({
             chatInitiated
               ? "calc(-300px + 100vh)"
               : messages.length - 1 === index &&
-                message.role === "assistant" &&
-                chatInitiated
-              ? "calc(-240px + 100vh)"
-              : "auto"
+                  message.role === "assistant" &&
+                  chatInitiated
+                ? "calc(-240px + 100vh)"
+                : "auto"
           }`,
         }}
       >
@@ -129,10 +127,10 @@ const RenderMessageOnScreen = ({
             message.role === "user"
               ? "calc(-360px + 100vh)"
               : messages.length - 1 === index &&
-                chatInitiated &&
-                message.role === "assistant"
-              ? "calc(-380px + 100vh)"
-              : "auto"
+                  chatInitiated &&
+                  message.role === "assistant"
+                ? "calc(-380px + 100vh)"
+                : "auto"
           }`,
         }}
       >

@@ -14,7 +14,6 @@ import {
   Upload,
   CopyIcon,
 } from "lucide-react";
-import { CHAT_CACHE_UPDATED_EVENT } from "@/support/fetchChats";
 import {
   Dialog,
   DialogContent,
@@ -946,8 +945,8 @@ export default function ChatHistory({ max_chats, onClose }: ChatHistoryProps) {
               {hasCache && debouncedSearchTerm
                 ? "No matching results"
                 : hasCache
-                ? "" // Cache exists, no search, but 0 results (unlikely)
-                : ""}
+                  ? "" // Cache exists, no search, but 0 results (unlikely)
+                  : ""}
               {/* If !hasCache, the main area already shows "No cached chats found" */}
             </span>
           )

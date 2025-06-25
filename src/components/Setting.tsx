@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Command, LogOutIcon, Moon, Sun, UserRound } from "lucide-react"; // Removed unused Database icon
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { authClient } from "@/lib/auth-client";
 // import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import Image from "next/image";
@@ -50,28 +49,7 @@ export default function Settings() {
     }
   }, []);
 
-  const handleLogout = async () => {
-    setLogOutLading(true);
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: async () => {
-          setUser(undefined);
-          localStorage.clear();
-          Cookies.remove("user-status");
-          const user = await authClient.signIn.anonymous();
-          if (user) {
-            setUser(user?.data?.user);
-            // SetCookie user-status=guest
-            Cookies.set("user-status", "guest", { expires: 7 });
-          }
-          setLogOutLading(false);
-          window.location.replace("/chat?new=true");
-          // Close the dialog if onClose is provided
-          // return location.reload();
-        },
-      },
-    });
-  };
+  const handleLogout = async () => {};
 
   return (
     <div className=" flex flex-col">
