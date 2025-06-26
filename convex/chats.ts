@@ -37,3 +37,51 @@ export const add = mutation({
     });
   },
 });
+
+export const deleteChat = mutation({
+  args: {
+    chatId: v.id("chats"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    // First, verify that the chat belongs to the current user
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+
+    if (chat.userId !== userId) {
+      throw new Error("Not authorized to delete this chat");
+    }
+
+    // Delete all messages associated with this chat
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+      .collect();
+
+    // Delete each message and associated files if any
+    for (const message of messages) {
+      // Delete associated file if it exists
+      if (message.fileId) {
+        try {
+          await ctx.storage.delete(message.fileId);
+        } catch (error) {
+          // Log error but continue with deletion
+          console.error("Error deleting file:", error);
+        }
+      }
+      // Delete the message
+      await ctx.db.delete(message._id);
+    }
+
+    // Finally, delete the chat itself
+    await ctx.db.delete(args.chatId);
+
+    return { success: true };
+  },
+});

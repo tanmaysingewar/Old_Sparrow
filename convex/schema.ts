@@ -23,9 +23,10 @@ export default defineSchema({
     botResponse: v.string(),
     chatId: v.id("chats"),
     createdAt: v.number(), // Unix timestamp
-    fileUrl: v.optional(v.string()), // Optional, defaults to empty
+    fileId: v.optional(v.id("_storage")), // Optional, defaults to empty
     fileType: v.optional(v.string()), // Optional, defaults to empty
     fileName: v.optional(v.string()), // Optional, defaults to empty
+    fileSize: v.optional(v.number()), // Optional, defaults to empty
   })
     .index("by_chat", ["chatId"])
     .index("by_chat_created", ["chatId", "createdAt"]),

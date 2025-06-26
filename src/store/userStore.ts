@@ -16,7 +16,6 @@ interface User {
 interface UserState {
   user: User | null;
   setUser: (user: User | undefined) => void;
-  refreshSession: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>()(
@@ -25,9 +24,6 @@ export const useUserStore = create<UserState>()(
       user: null,
       setUser: (user: User | undefined) => {
         set({ user: user });
-      },
-      refreshSession: async () => {
-        // Always fetch fresh session data
       },
     }),
     {

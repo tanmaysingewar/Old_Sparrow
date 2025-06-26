@@ -6,18 +6,10 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { useUserSearchInput } from "@/store/userSearchInput";
 
 interface TextInputProps {
-  input: string;
-  setInput: (value: string) => void;
   height: number;
-  onSend: (message: string) => void;
-  filteredSuggestions?: string[];
-  selectedIndex?: number;
-  setSelectedIndex?: (index: number | ((prev: number) => number)) => void;
-  handleSelection?: (selection: string) => void;
-  handleInputChange?: (value: string) => void;
-  disabled?: boolean;
 }
 
 // Define methods that can be called on the TextInput ref
@@ -26,22 +18,9 @@ export interface TextInputRef {
 }
 
 const TextInput = memo(
-  forwardRef<TextInputRef, TextInputProps>(function TextInput(
-    {
-      input,
-      setInput,
-      height,
-      onSend,
-      filteredSuggestions = [],
-      selectedIndex = 0,
-      setSelectedIndex = () => {},
-      handleSelection = () => {},
-      handleInputChange = setInput,
-      disabled = false,
-    },
-    ref
-  ) {
+  forwardRef<TextInputRef, TextInputProps>(function TextInput({ height }, ref) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const { userSearchInput, setUserSearchInput } = useUserSearchInput();
 
     // Expose focus method to parent components
     useImperativeHandle(ref, () => ({
@@ -64,26 +43,16 @@ const TextInput = memo(
     // Adjust height when input changes
     useEffect(() => {
       adjustHeight();
-    }, [input, adjustHeight]);
+    }, [userSearchInput.text, adjustHeight]);
 
     const handleChange = useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
-        const words = input.split(" ");
-        const hasExistingTone = words.some((word) => word.startsWith("!"));
-
-        // If there's an existing tone and user is trying to add another !, prevent it
-        if (
-          hasExistingTone &&
-          newValue.length > input.length &&
-          newValue.slice(-1) === "!"
-        ) {
-          return;
-        }
-
-        handleInputChange(newValue);
+        setUserSearchInput({
+          ...userSearchInput,
+          text: e.target.value,
+        });
       },
-      [handleInputChange, input]
+      [userSearchInput, setUserSearchInput]
     );
 
     return (
@@ -91,7 +60,7 @@ const TextInput = memo(
         <textarea
           ref={textareaRef}
           placeholder="How can I help you"
-          value={input}
+          value={userSearchInput.text}
           className="w-full bg-transparent resize-none overflow-y-auto rounded-lg focus:outline-none caret-black dark:caret-white p-3 placeholder:text-neutral-400 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500"
           style={{
             fontSize: "16px",
@@ -100,36 +69,6 @@ const TextInput = memo(
             height: height + "px",
           }}
           onChange={handleChange}
-          // Handle keyboard events for suggestions and sending messages
-          onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            const hasSuggestions = filteredSuggestions.length > 0;
-
-            if (e.key === "ArrowUp" && hasSuggestions) {
-              e.preventDefault();
-              setSelectedIndex((prev: number) =>
-                prev > 0 ? prev - 1 : filteredSuggestions.length - 1
-              );
-            } else if (e.key === "ArrowDown" && hasSuggestions) {
-              e.preventDefault();
-              setSelectedIndex((prev: number) =>
-                prev < filteredSuggestions.length - 1 ? prev + 1 : 0
-              );
-            } else if (e.key === "Enter") {
-              if (!e.shiftKey && hasSuggestions) {
-                e.preventDefault();
-                handleSelection(filteredSuggestions[selectedIndex]);
-              } else if (
-                !e.shiftKey &&
-                !input.split(" ").slice(-1)[0].includes("@")
-              ) {
-                e.preventDefault(); // Prevent new line
-                if (input.trim() && !disabled) {
-                  // Only send if there's content and not disabled
-                  onSend(input);
-                }
-              }
-            }
-          }}
         />
       </div>
     );

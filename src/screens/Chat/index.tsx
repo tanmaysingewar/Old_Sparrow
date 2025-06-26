@@ -1,14 +1,7 @@
 "use client";
-import React, {
-  useState,
-  useRef,
-  // useEffect,
-  // useLayoutEffect,
-  useCallback,
-  useEffect,
-} from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import InputBox, { InputBoxRef } from "@/components/InputArea/InputBox";
+import InputBox from "@/components/InputArea/InputBox";
 import Header from "@/components/Header";
 import Spinner from "@/components/Spinner";
 import Head from "next/head";
@@ -21,6 +14,8 @@ import ChatHistoryDesktop from "@/components/ChatHistory/Desktop";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useUserStore } from "@/store/userStore";
+import { saveLocalMessages, getLocalMessages } from "@/store/saveMessages";
 
 const pacifico = Pacifico({
   subsets: ["latin"],
@@ -35,8 +30,8 @@ const libreBaskerville = Libre_Baskerville({
 export default function ChatPage() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState<string>("");
+  const { user } = useUserStore();
   const [messages, setMessages] = useState<any[]>([]);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatId = searchParams.get("chatId");
   const getMessages = useQuery(
@@ -50,41 +45,48 @@ export default function ChatPage() {
     }
   }, [searchParams]);
 
-  console.log("getMessages", getMessages);
-
   useEffect(() => {
-    setMessages([]);
+    if (chatId) {
+      const messages = getLocalMessages(chatId);
+      setMessages(messages);
+    }
+
     if (chatId && getMessages) {
       if (getMessages.length === 0) {
-        setMessages([
+        const newMessages = [
           {
             role: "assistant",
             content: "Hello, how can I help you today?",
             createdAt: Date.now(),
           },
-        ]);
+        ];
+        setMessages(newMessages);
+        saveLocalMessages(newMessages, chatId);
+      } else {
+        const newMessages = getMessages
+          .slice()
+          .reverse()
+          .flatMap((message) => [
+            {
+              role: "user",
+              content: message.userMessage,
+              createdAt: message.createdAt,
+              fileUrl: "",
+              fileType: "",
+              fileName: "",
+            },
+            {
+              role: "assistant",
+              content: message.botResponse,
+              createdAt: message.createdAt,
+              fileUrl: "",
+              fileType: "",
+              fileName: "",
+            },
+          ]);
+        setMessages(newMessages);
+        saveLocalMessages(newMessages, chatId);
       }
-      getMessages.forEach((message) => {
-        setMessages((prevMessages) => [
-          {
-            role: "user",
-            content: message.userMessage,
-            createdAt: message.createdAt,
-            fileUrl: "",
-            fileType: "",
-            fileName: "",
-          },
-          {
-            role: "assistant",
-            content: message.botResponse,
-            createdAt: message.createdAt,
-            fileUrl: "",
-            fileType: "",
-            fileName: "",
-          },
-          ...prevMessages,
-        ]);
-      });
     }
   }, [getMessages, chatId]);
 
@@ -97,7 +99,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className={`flex w-full h-full`}>
+    <div className={`flex w-full h-full dark:bg-[#222325] bg-[#f8f8f7]`}>
       {/* Chat History - Hidden on mobile by default */}
       <Head>
         <title>Better Index</title>
@@ -113,7 +115,7 @@ export default function ChatPage() {
 
       {/* Main Chat Area */}
       <div
-        className={`flex flex-col w-full dark:bg-[#272728] bg-white lg:mt-0 `}
+        className={`flex flex-col w-full dark:bg-[#272728] bg-[#f8f8f7] lg:mt-0 `}
       >
         <div className="lg:hidden">
           <Header />
@@ -134,7 +136,7 @@ export default function ChatPage() {
                 className={`text-3xl text-left ml-2 font-[400] dark:text-[#dadada] font-sans ${libreBaskerville.className}`}
               >
                 <span className={`${pacifico.className} text-3xl`}></span>
-                Hello
+                Hello {user?.name || "there"}
               </p>
               <p
                 className={`text-2xl text-left ml-2 font-[400] text-[#7f7f7f] mt-2 ${libreBaskerville.className}`}

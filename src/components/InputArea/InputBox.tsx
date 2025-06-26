@@ -22,6 +22,11 @@ import { Button } from "../ui/button";
 import TextInput, { TextInputRef } from "./TextInput";
 import PDFIcon from "./assets/pdf";
 import DOCIcon from "./assets/doc";
+import { useUserSearchInput } from "@/store/userSearchInput";
+import { useMutation, useQuery, useAction } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
+import { useSearchParams } from "next/navigation";
 
 interface InputBoxProps {}
 
@@ -30,140 +35,220 @@ export interface InputBoxRef {
   focus: () => void;
 }
 
-const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
-  function InputBox(props, ref) {
-    const [input, setInput] = useState<string>("");
-    const [height, setHeight] = useState<number>(50);
-    const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>(
-      []
-    );
-    const [selectedIndex, setSelectedIndex] = useState<number>(0);
-    const textInputRef = useRef<TextInputRef>(null);
-    const [mode, setMode] = useState<"auto" | "chat" | "agent">("auto");
+const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox() {
+  const textInputRef = useRef<TextInputRef>(null);
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"auto" | "chat" | "agent">("auto");
+  const [isDisabled, setIsDisabled] = useState(false);
+  const { userSearchInput, setUserSearchInput } = useUserSearchInput();
+  const generateUploadUrl = useMutation(api.messages.generateUploadUrl);
+  const getFileUrl = useQuery(
+    api.messages.getFileUrl,
+    userSearchInput.fileId
+      ? {
+          storageId: userSearchInput.fileId as Id<"_storage">,
+        }
+      : "skip"
+  );
+  const deleteFile = useMutation(api.messages.deleteFile);
+  const generate = useAction(api.generate.generate);
 
-    return (
-      <div>
-        <div className="max-w-3xl text-base font-sans lg:px-0 w-screen md:rounded-t-3xl px-2 select-none rounded-3xl">
-          <div className="flex flex-col items-center rounded-3xl dark:bg-[#212122] bg-neutral-100/70 p-2 w-full backdrop-blur-xs">
-            {/* File Content Indicator */}
-            {true && (
-              <div className="mx-3 mb-2 w-full">
-                <div
-                  className={`flex items-start rounded-xl px-3 py-2 bg-[#f3f3f3] dark:bg-[#424143] w-fit`}
-                >
-                  <div className="flex items-center space-x-2 mr-10">
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+
+      setIsDisabled(true);
+      if (file) {
+        setUserSearchInput({
+          ...userSearchInput,
+          fileId: "",
+          fileType: file.type,
+          fileName: file.name,
+          fileSize: file.size,
+        });
+        const postUrl = await generateUploadUrl();
+        if (postUrl) {
+          const result = await fetch(postUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          const { storageId } = await result.json();
+          setUserSearchInput({
+            ...userSearchInput,
+            fileId: storageId,
+            fileType: file.type,
+            fileName: file.name,
+            fileSize: file.size,
+          });
+        }
+      }
+      setIsDisabled(false);
+    },
+    [userSearchInput, setUserSearchInput, generateUploadUrl]
+  );
+
+  const handleFileDelete = useCallback(() => {
+    setIsDisabled(true);
+    setUserSearchInput({
+      ...userSearchInput,
+      fileId: "",
+      fileType: "",
+      fileName: "",
+      fileSize: 0,
+    });
+    if (userSearchInput.fileId) {
+      deleteFile({ storageId: userSearchInput.fileId as Id<"_storage"> });
+    }
+    setIsDisabled(false);
+  }, [userSearchInput, setUserSearchInput, deleteFile]);
+
+  const handleSendMessage = useCallback(async () => {
+    console.log("handleSendMessage", userSearchInput);
+    const chatIdParam = searchParams.get("chatId");
+    await generate({
+      chatId: chatIdParam ? (chatIdParam as Id<"chats">) : undefined,
+      userMessage: userSearchInput.text,
+    });
+  }, [generate, userSearchInput, searchParams]);
+
+  return (
+    <div>
+      <div className="max-w-3xl text-base font-sans lg:px-0 w-screen md:rounded-t-3xl px-2 select-none rounded-3xl">
+        <div className="flex flex-col items-center rounded-3xl dark:bg-[#212122] bg-white p-2 w-full backdrop-blur-xs">
+          {/* File Content Indicator */}
+          {userSearchInput.fileName && (
+            <div className="mx-3 mb-2 w-full">
+              <div
+                className={`group flex items-start rounded-xl px-3 py-2 bg-[#f3f3f3] dark:bg-[#424143] w-fit cursor-pointer`}
+                onClick={() => {
+                  if (userSearchInput.fileId && getFileUrl) {
+                    window.open(getFileUrl, "_blank");
+                  }
+                }}
+              >
+                <div className="flex items-center space-x-2 mr-10 ">
+                  {userSearchInput.fileId ? (
                     <PDFIcon className="w-8 h-8" />
-                    <div className="flex flex-col">
-                      <span className={`text-sm text-white dark:text-white`}>
-                        empty.pdf
-                      </span>
-                      <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                        PDF - 0 MB
-                      </span>
-                    </div>
-                  </div>
-                  <button className="text-[#7bc2de] dark:text-[#7bc2de] hover:text-[#8fdfff] dark:hover:text-[#8fdfff] text-sm cursor-pointer">
-                    <X className="w-4 h-4 text-transparent hover:text-white hover:bg-white/10 rounded-full p-1" />
-                  </button>
-                </div>
-              </div>
-            )}
-            <TextInput
-              ref={textInputRef}
-              input={input}
-              setInput={setInput}
-              height={height}
-              onSend={() => {}}
-              filteredSuggestions={filteredSuggestions}
-              selectedIndex={selectedIndex}
-              setSelectedIndex={setSelectedIndex}
-              handleSelection={() => {}}
-              handleInputChange={() => {}}
-              disabled={false}
-            />
-            <div className="flex flex-row justify-between w-full mt-0">
-              <div className="flex flex-row mt-2 dark:text-neutral-200 mx-2 mb-2 justify-center items-center gap-2">
-                <div className="mt-0 flex flex-row gap-3">
-                  <div
-                    className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
-                  >
-                    <label
-                      htmlFor="file-upload"
-                      className={`flex flex-row items-center p-1.5 ${
-                        false ? "cursor-wait" : "cursor-pointer"
-                      }`}
-                    >
-                      {false ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Paperclip className="w-[18px] h-[18px]" />
-                      )}
-                    </label>
+                  ) : (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
+                  <div className="flex flex-col">
+                    <span className={`text-sm text-black dark:text-white`}>
+                      {userSearchInput.fileName}
+                    </span>
+                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                      {userSearchInput.fileType.includes("image")
+                        ? "Image"
+                        : userSearchInput.fileType.includes("pdf")
+                          ? "PDF"
+                          : userSearchInput.fileType.includes("doc")
+                            ? "DOC"
+                            : userSearchInput.fileType}{" "}
+                      - {userSearchInput.fileSize.toLocaleString()}
+                    </span>
                   </div>
                 </div>
-                <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-full relative w-fit p-[1px]">
-                  <motion.div
-                    className="absolute bg-white dark:bg-[#3e3d3e] rounded-full shadow-sm"
-                    initial={false}
-                    animate={{
-                      x: mode === "auto" ? 2 : mode === "chat" ? 37 : 72,
-                      width: 34,
-                      height: 29,
-                      y: 0,
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                    }}
-                  />
-                  <motion.div
-                    className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
-                    onClick={() => setMode("auto")}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                <button
+                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-neutral-500 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 text-sm cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFileDelete();
+                  }}
+                >
+                  <X className="w-5 h-5 hover:bg-red-500/10 rounded-full p-1" />
+                </button>
+              </div>
+            </div>
+          )}
+          <TextInput ref={textInputRef} height={50} />
+          <div className="flex flex-row justify-between w-full mt-0">
+            <div className="flex flex-row mt-2 dark:text-neutral-200 mx-2 mb-2 justify-center items-center gap-2">
+              <div className="mt-0 flex flex-row gap-3">
+                <div
+                  className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
+                >
+                  <label
+                    htmlFor="file-upload"
+                    className={`flex flex-row items-center p-1.5 ${
+                      isDisabled ? "cursor-wait" : "cursor-pointer"
+                    }`}
                   >
-                    <ZapIcon className="w-4 h-4" />
-                  </motion.div>
-                  <motion.div
-                    className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
-                    onClick={() => setMode("chat")}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  >
-                    <MessageSquareMore className="w-4 h-4" />
-                  </motion.div>
-                  <motion.div
-                    className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
-                    onClick={() => setMode("agent")}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  >
-                    <Atom className="w-4 h-4" />
-                  </motion.div>
+                    <input
+                      type="file"
+                      id="file-upload"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={isDisabled}
+                      accept="image/*, application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/plain"
+                    />
+                    <Paperclip className="w-[18px] h-[18px]" />
+                  </label>
                 </div>
               </div>
-              <div className="flex flex-row justify-center items-center">
-                <p className="text-xs dark:text-neutral-400 text-neutral-500 mr-3 hidden md:block select-none">
-                  Use{" "}
-                  <span className="dark:text-white text-black">
-                    shift + return
-                  </span>{" "}
-                  for new line
-                </p>
-                <Button className="p-2 h-[38px] w-[38px] rounded-full dark:bg-neutral-200 bg-neutral-800">
-                  {/* {!(disabled || isUploading) ? <Send /> : <OctagonPause />} */}
-                  <Send />
-                </Button>
+              <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-full relative w-fit p-[1px]">
+                <motion.div
+                  className="absolute bg-white dark:bg-[#3e3d3e] rounded-full shadow-sm"
+                  initial={false}
+                  animate={{
+                    x: mode === "auto" ? 1 : mode === "chat" ? 37 : 72,
+                    width: 35,
+                    height: 30,
+                    y: 0,
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                  }}
+                />
+                <motion.div
+                  className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                  onClick={() => setMode("auto")}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <ZapIcon className="w-4 h-4" />
+                </motion.div>
+                <motion.div
+                  className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                  onClick={() => setMode("chat")}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <MessageSquareMore className="w-4 h-4" />
+                </motion.div>
+                <motion.div
+                  className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                  onClick={() => setMode("agent")}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <Atom className="w-4 h-4" />
+                </motion.div>
               </div>
+            </div>
+            <div className="flex flex-row justify-center items-center">
+              <p className="text-xs dark:text-neutral-400 text-neutral-500 mr-3 hidden md:block select-none">
+                Use{" "}
+                <span className="dark:text-white text-black">
+                  shift + return
+                </span>{" "}
+                for new line
+              </p>
+              <Button
+                className="p-2 h-[38px] w-[38px] rounded-full dark:bg-neutral-200 bg-neutral-800"
+                onClick={handleSendMessage}
+                disabled={isDisabled}
+              >
+                {isDisabled ? <OctagonPause className="w-4 h-4" /> : <Send />}
+              </Button>
             </div>
           </div>
         </div>
       </div>
-    );
-  }
-);
-
-const promptSuggestions: string[] = [];
+    </div>
+  );
+});
 
 export default InputBox;

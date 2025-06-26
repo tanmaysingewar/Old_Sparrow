@@ -29,6 +29,10 @@ export const add = mutation({
     chatId: v.id("chats"),
     userMessage: v.string(),
     botResponse: v.string(),
+    fileId: v.optional(v.id("_storage")),
+    fileType: v.optional(v.string()),
+    fileName: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -41,6 +45,62 @@ export const add = mutation({
       botResponse: args.botResponse,
       chatId: args.chatId,
       createdAt: Date.now(),
+      fileId: args.fileId || undefined,
+      fileType: args.fileType || undefined,
+      fileName: args.fileName || undefined,
+      fileSize: args.fileSize || undefined,
     });
+  },
+});
+
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const getFileUrl = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    if (!args.storageId) {
+      return null;
+    }
+
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+
+    const fileUrl = await ctx.storage.getUrl(args.storageId);
+    if (!fileUrl) {
+      return null;
+    }
+
+    return fileUrl;
+  },
+});
+
+export const deleteFile = mutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    if (!args.storageId) {
+      return null;
+    }
+
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+
+    return await ctx.storage.delete(args.storageId);
   },
 });

@@ -39,7 +39,7 @@ export default function RootLayout({
         /> */}
         {/* rest of your scripts go under */}
       </head>
-      <body className="antialiased dark:bg-[#222325] bg-white font-mono">
+      <body className="antialiased dark:bg-[#222325] bg-[#f8f8f7] font-mono">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
