@@ -16,10 +16,9 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Cookies from "js-cookie";
 import Image from "next/image";
 import { Button } from "./ui/button";
-import ChatHistory from "./ChatHistory/Mobile";
+// import ChatHistory from "./ChatHistory/Mobile";
 import { Switch } from "./ui/switch";
 import { useUserStore } from "@/store/userStore";
 
@@ -27,18 +26,12 @@ import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
 // import Spinner from "./Spinner";
 
-interface HeaderInterface {
-  landingPage: boolean | undefined;
-  isAnonymous: boolean;
-}
-
 export default function Header() {
   const { theme, setTheme } = useTheme();
   const [openChatHistoryDrawer, setOpenChatHistoryDrawer] = useState(false);
-  const [signLading, setSignLading] = useState(false);
-  const [logOutLading, setLogOutLading] = useState(false);
+  const [logOutLading] = useState(false);
 
-  const { user, setUser } = useUserStore();
+  const { user } = useUserStore();
 
   const handleLogout = async () => {};
 
@@ -65,56 +58,56 @@ export default function Header() {
     }
   }, []);
 
-  const SignInComponent = () => {
-    return (
-      <Button className="cursor-pointer w-[70px]" disabled={signLading}>
-        {signLading ? (
-          <svg
-            fill="#000000"
-            version="1.1"
-            id="Capa_1"
-            xmlns="http://www.w3.org/2000/svg"
-            xmlnsXlink="http://www.w3.org/1999/xlink"
-            width="900px"
-            height="900px"
-            viewBox="0 0 26.349 26.35"
-            style={{ animation: "spin 1s linear infinite" }}
-          >
-            <style>
-              {`
-                    @keyframes spin {
-                      from {
-                        transform: rotate(0deg);
-                      }
-                      to {
-                        transform: rotate(360deg);
-                      }
-                    }
-                `}
-            </style>
-            <g>
-              <g>
-                <circle cx="13.792" cy="3.082" r="3.082" />
-                <circle cx="13.792" cy="24.501" r="1.849" />
-                <circle cx="6.219" cy="6.218" r="2.774" />
-                <circle cx="21.365" cy="21.363" r="1.541" />
-                <circle cx="3.082" cy="13.792" r="2.465" />
-                <circle cx="24.501" cy="13.791" r="1.232" />
-                <path d="M4.694,19.84c-0.843,0.843-0.843,2.207,0,3.05c0.842,0.843,2.208,0.843,3.05,0c0.843-0.843,0.843-2.207,0-3.05 C6.902,18.996,5.537,18.988,4.694,19.84z" />
-                <circle cx="21.364" cy="6.218" r="0.924" />
-              </g>
-            </g>
-          </svg>
-        ) : (
-          "Sign In"
-        )}
-      </Button>
-    );
-  };
+  // const SignInComponent = () => {
+  //   return (
+  //     <Button className="cursor-pointer w-[70px]" disabled={logOutLading}>
+  //       {logOutLading ? (
+  //         <svg
+  //           fill="#000000"
+  //           version="1.1"
+  //           id="Capa_1"
+  //           xmlns="http://www.w3.org/2000/svg"
+  //           xmlnsXlink="http://www.w3.org/1999/xlink"
+  //           width="900px"
+  //           height="900px"
+  //           viewBox="0 0 26.349 26.35"
+  //           style={{ animation: "spin 1s linear infinite" }}
+  //         >
+  //           <style>
+  //             {`
+  //                   @keyframes spin {
+  //                     from {
+  //                       transform: rotate(0deg);
+  //                     }
+  //                     to {
+  //                       transform: rotate(360deg);
+  //                     }
+  //                   }
+  //               `}
+  //           </style>
+  //           <g>
+  //             <g>
+  //               <circle cx="13.792" cy="3.082" r="3.082" />
+  //               <circle cx="13.792" cy="24.501" r="1.849" />
+  //               <circle cx="6.219" cy="6.218" r="2.774" />
+  //               <circle cx="21.365" cy="21.363" r="1.541" />
+  //               <circle cx="3.082" cy="13.792" r="2.465" />
+  //               <circle cx="24.501" cy="13.791" r="1.232" />
+  //               <path d="M4.694,19.84c-0.843,0.843-0.843,2.207,0,3.05c0.842,0.843,2.208,0.843,3.05,0c0.843-0.843,0.843-2.207,0-3.05 C6.902,18.996,5.537,18.988,4.694,19.84z" />
+  //               <circle cx="21.364" cy="6.218" r="0.924" />
+  //             </g>
+  //           </g>
+  //         </svg>
+  //       ) : (
+  //         "Sign In"
+  //       )}
+  //     </Button>
+  //   );
+  // };
 
-  const closeChatHistory = () => {
-    setOpenChatHistoryDrawer(false);
-  };
+  // const closeChatHistory = () => {
+  //   setOpenChatHistoryDrawer(false);
+  // };
 
   return (
     <div className="w-full block">
@@ -167,12 +160,11 @@ export default function Header() {
               </DrawerTrigger>
               <DrawerContent className="w-full dark:bg-[#1d1e20] rounded-t-2xl ">
                 <DrawerTitle></DrawerTitle>
-                <ChatHistory max_chats={7} onClose={closeChatHistory} />
+                {/* <ChatHistory max_chats={7} onClose={closeChatHistory} /> */}
               </DrawerContent>
             </Drawer>
 
-            {/* {isAnonymous && SignInComponent()} */}
-            {/* {!isAnonymous && ( */}
+            {/* {user ? SignInComponent() : null} */}
             <Drawer>
               <DrawerTrigger className="outline-none">
                 <div className="p-3 hover:bg-neutral-200 dark:hover:bg-[#36383a] cursor-pointer rounded-full outline-none">

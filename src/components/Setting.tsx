@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "./ui/select";
 import { useUserStore } from "@/store/userStore";
-import Cookies from "js-cookie";
 import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
 
@@ -23,8 +22,8 @@ import { useTheme } from "next-themes";
 export default function Settings() {
   // const router = useRouter();
   const [selected, setSelected] = useState("Account");
-  const { user, setUser } = useUserStore();
-  const [logOutLading, setLogOutLading] = useState(false);
+  const { user } = useUserStore();
+  const [logOutLading] = useState(false);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {

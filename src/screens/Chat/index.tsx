@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import ChatHistoryDesktop from "@/components/ChatHistory/Desktop";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
 import { useUserStore } from "@/store/userStore";
 import { saveLocalMessages, getLocalMessages } from "@/store/saveMessages";
 
@@ -29,14 +28,14 @@ const libreBaskerville = Libre_Baskerville({
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
-  const [input, setInput] = useState<string>("");
   const { user } = useUserStore();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatId = searchParams.get("chatId");
   const getMessages = useQuery(
     api.messages.get,
-    chatId ? { chatId: chatId as Id<"chats"> } : "skip"
+    chatId ? { chatId: chatId } : "skip"
   );
 
   useEffect(() => {
@@ -53,15 +52,7 @@ export default function ChatPage() {
 
     if (chatId && getMessages) {
       if (getMessages.length === 0) {
-        const newMessages = [
-          {
-            role: "assistant",
-            content: "Hello, how can I help you today?",
-            createdAt: Date.now(),
-          },
-        ];
-        setMessages(newMessages);
-        saveLocalMessages(newMessages, chatId);
+        return;
       } else {
         const newMessages = getMessages
           .slice()
@@ -110,7 +101,7 @@ export default function ChatPage() {
           "hidden lg:block max-w-[300px] w-full h-full fixed md:relative z-50 transition-transform duration-200 ease-in-out scrollbar-hide"
         )}
       >
-        <ChatHistoryDesktop isNewUser={false} isLoading={false} />
+        <ChatHistoryDesktop />
       </div>
 
       {/* Main Chat Area */}
@@ -145,7 +136,7 @@ export default function ChatPage() {
               </p>
             </div>
           ) : /* Show loading spinner when loading an existing chat with no messages yet */
-          messages.length === 0 && !input ? (
+          messages.length === 0 ? (
             <div className="flex justify-center items-center h-full">
               <Spinner />
             </div>
@@ -179,7 +170,7 @@ export default function ChatPage() {
                   : "fixed bottom-0 pb-2 bg-white dark:bg-[#272728]"
               }`}
             >
-              <InputBox />
+              <InputBox setMessages={setMessages} messages={messages} />
             </div>
           </div>
         </div>

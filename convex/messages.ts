@@ -1,10 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
 
 export const get = query({
   args: {
-    chatId: v.id("chats"),
+    chatId: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -26,7 +27,7 @@ export const get = query({
 
 export const add = mutation({
   args: {
-    chatId: v.id("chats"),
+    chatId: v.string(),
     userMessage: v.string(),
     botResponse: v.string(),
     fileId: v.optional(v.id("_storage")),

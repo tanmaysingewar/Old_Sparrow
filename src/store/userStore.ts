@@ -20,7 +20,7 @@ interface UserState {
 
 export const useUserStore = create<UserState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       setUser: (user: User | undefined) => {
         set({ user: user });

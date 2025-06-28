@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const saveLocalMessages = (messages: any[], chatId: string) => {
   localStorage.setItem(`messages-${chatId}`, JSON.stringify(messages));
 };

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
 
 export const get = query({
   args: {},
@@ -17,30 +18,9 @@ export const get = query({
   },
 });
 
-export const add = mutation({
-  args: {
-    title: v.string(),
-    category: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      return [];
-    }
-
-    await ctx.db.insert("chats", {
-      title: args.title,
-      userId: userId,
-      createdAt: Date.now(),
-      isShared: false,
-      category: args.category,
-    });
-  },
-});
-
 export const deleteChat = mutation({
   args: {
-    chatId: v.id("chats"),
+    chatId: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -49,7 +29,10 @@ export const deleteChat = mutation({
     }
 
     // First, verify that the chat belongs to the current user
-    const chat = await ctx.db.get(args.chatId);
+    const chat = await ctx.db
+      .query("chats")
+      .filter((q) => q.eq(q.field("customChatId"), args.chatId))
+      .first();
     if (!chat) {
       throw new Error("Chat not found");
     }
@@ -61,7 +44,7 @@ export const deleteChat = mutation({
     // Delete all messages associated with this chat
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+      .withIndex("by_chat", (q) => q.eq("chatId", chat._id as Id<"chats">))
       .collect();
 
     // Delete each message and associated files if any
@@ -80,7 +63,14 @@ export const deleteChat = mutation({
     }
 
     // Finally, delete the chat itself
-    await ctx.db.delete(args.chatId);
+    await ctx.db
+      .query("chats")
+      .filter((q) => q.eq(q.field("customChatId"), args.chatId))
+      .first();
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+    await ctx.db.delete(chat._id);
 
     return { success: true };
   },

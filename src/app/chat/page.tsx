@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import ChatInterface from "@/screens/Chat";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 
 export default function ChatPage() {

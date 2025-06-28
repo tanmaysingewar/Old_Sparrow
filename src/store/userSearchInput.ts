@@ -20,7 +20,7 @@ interface UserSearchInputState {
 
 export const useUserSearchInput = create<UserSearchInputState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       userSearchInput: {
         text: "",
         fileId: "",

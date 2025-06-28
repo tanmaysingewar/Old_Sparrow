@@ -1,7 +1,6 @@
 "use client";
 import React, {
   useState,
-  useEffect,
   useCallback,
   useRef,
   forwardRef,
@@ -21,24 +20,39 @@ import {
 import { Button } from "../ui/button";
 import TextInput, { TextInputRef } from "./TextInput";
 import PDFIcon from "./assets/pdf";
-import DOCIcon from "./assets/doc";
 import { useUserSearchInput } from "@/store/userSearchInput";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useSearchParams } from "next/navigation";
+import { getLocalMessages, saveLocalMessages } from "@/store/saveMessages";
 
-interface InputBoxProps {}
+interface InputBoxProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setMessages: (messages: any[]) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messages: any[];
+}
 
 // Define the ref interface for InputBox
 export interface InputBoxRef {
   focus: () => void;
 }
 
-const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox() {
+const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
+  { setMessages, messages },
+  ref
+) {
   const textInputRef = useRef<TextInputRef>(null);
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<"auto" | "chat" | "agent">("auto");
+
+  // Expose focus method through ref
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textInputRef.current?.focus();
+    },
+  }));
   const [isDisabled, setIsDisabled] = useState(false);
   const { userSearchInput, setUserSearchInput } = useUserSearchInput();
   const generateUploadUrl = useMutation(api.messages.generateUploadUrl);
@@ -104,13 +118,100 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox() {
   }, [userSearchInput, setUserSearchInput, deleteFile]);
 
   const handleSendMessage = useCallback(async () => {
-    console.log("handleSendMessage", userSearchInput);
-    const chatIdParam = searchParams.get("chatId");
+    // Don't send if text is empty or just whitespace
+    if (!userSearchInput.text.trim()) {
+      return;
+    }
+
+    let chatIdParam = searchParams.get("chatId");
+    let text = userSearchInput.text;
+    // if chatId is not there, create a new chat ID using NanoId
+    if (!chatIdParam) {
+      const chatId = crypto.randomUUID();
+      chatIdParam = chatId;
+      text = userSearchInput.text;
+      setUserSearchInput({
+        ...userSearchInput,
+        text: "",
+      });
+
+      saveLocalMessages(
+        [
+          {
+            role: "user",
+            content: text,
+            createdAt: Date.now(),
+          },
+          {
+            role: "assistant",
+            content: "Loading...",
+            createdAt: Date.now(),
+          },
+        ],
+        chatIdParam
+      );
+      // redirect to the chat page
+      const currentSearchParams = new URLSearchParams(window.location.search);
+
+      document.title = "New Chat" + " - Better Index";
+      currentSearchParams.set("chatId", chatIdParam);
+      currentSearchParams.delete("new");
+      window.history.pushState({}, "", `/chat?${currentSearchParams}`);
+    } else {
+      // update the local messages with the new message
+      const localMessages = getLocalMessages(chatIdParam);
+      setUserSearchInput({ ...userSearchInput, text: "" });
+      localMessages.push({
+        role: "user",
+        content: text,
+        createdAt: Date.now(),
+      });
+      localMessages.push({
+        role: "assistant",
+        content: "Loading...",
+        createdAt: Date.now(),
+      });
+
+      // Add message to local storage
+      setMessages([
+        ...messages,
+        {
+          role: "user",
+          content: text,
+          createdAt: Date.now(),
+        },
+        {
+          role: "assistant",
+          content: "Loading...",
+          createdAt: Date.now(),
+        },
+      ]);
+      saveLocalMessages(localMessages, chatIdParam);
+    }
+
+    // generate the response
     await generate({
-      chatId: chatIdParam ? (chatIdParam as Id<"chats">) : undefined,
-      userMessage: userSearchInput.text,
+      chatId: chatIdParam,
+      userMessage: text,
     });
-  }, [generate, userSearchInput, searchParams]);
+  }, [
+    generate,
+    userSearchInput,
+    searchParams,
+    setUserSearchInput,
+    setMessages,
+    messages,
+  ]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage]
+  );
 
   return (
     <div>
@@ -161,7 +262,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox() {
               </div>
             </div>
           )}
-          <TextInput ref={textInputRef} height={50} />
+          <TextInput ref={textInputRef} height={50} onKeyDown={handleKeyDown} />
           <div className="flex flex-row justify-between w-full mt-0">
             <div className="flex flex-row mt-2 dark:text-neutral-200 mx-2 mb-2 justify-center items-center gap-2">
               <div className="mt-0 flex flex-row gap-3">

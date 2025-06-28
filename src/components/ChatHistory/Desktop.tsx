@@ -27,6 +27,7 @@ interface Chat {
   isShared: boolean;
   userId: string;
   category: string;
+  customChatId: string;
 }
 
 // Debounce hook
@@ -43,15 +44,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-interface ChatHistoryProps {
-  isNewUser?: boolean;
-  isLoading?: boolean;
-}
-
-export default function ChatHistoryDesktop({
-  isNewUser = true,
-  isLoading: isLoadingProp = false,
-}: ChatHistoryProps) {
+export default function ChatHistoryDesktop() {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -77,7 +70,8 @@ export default function ChatHistoryDesktop({
         isShared: chat.isShared || false,
         userId: chat.userId,
         category: chat.category || "Untitled Chat",
-      }))
+        customChatId: chat.customChatId,
+      })) || []
     );
 
     setChatLoadings(true);
@@ -91,6 +85,7 @@ export default function ChatHistoryDesktop({
           isShared: chat.isShared || false,
           userId: chat.userId,
           category: chat.category || "Untitled Chat",
+          customChatId: chat.customChatId,
         })) || []
       );
       useUserChats.setState({
@@ -123,11 +118,11 @@ export default function ChatHistoryDesktop({
   });
 
   const handleChatClick = useCallback(
-    (chatId: string, chatTitle: string) => {
+    (chatId: string, chatTitle: string, customChatId: string) => {
       const currentSearchParams = new URLSearchParams(window.location.search);
 
       document.title = chatTitle + " - Better Index";
-      currentSearchParams.set("chatId", chatId);
+      currentSearchParams.set("chatId", customChatId);
       currentSearchParams.delete("new");
       window.history.pushState({}, "", `/chat?${currentSearchParams}`);
     },
@@ -219,19 +214,24 @@ export default function ChatHistoryDesktop({
                     onClick={
                       isEditing
                         ? undefined
-                        : () => handleChatClick(chat.id, chat.title)
+                        : () =>
+                            handleChatClick(
+                              chat.id,
+                              chat.title,
+                              chat.customChatId
+                            )
                     }
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) =>
                       !isEditing &&
                       e.key === "Enter" &&
-                      handleChatClick(chat.id, chat.title)
+                      handleChatClick(chat.id, chat.title, chat.customChatId)
                     }
                   >
                     <div
                       className={`hover:bg-neutral-200 dark:hover:bg-[#1a1a1a] cursor-pointer rounded-sm p-2 px-3 transition-colors duration-150 group relative ${
-                        currentChatId === chat.id
+                        currentChatId === chat.customChatId
                           ? "bg-white dark:bg-[#1a1a1a] hover:bg-white"
                           : ""
                       } ${

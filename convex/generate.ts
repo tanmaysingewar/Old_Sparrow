@@ -1,11 +1,5 @@
 import { v } from "convex/values";
-import {
-  action,
-  query,
-  mutation,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -16,13 +10,17 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions.mj
 export const createChat = internalMutation({
   args: {
     userId: v.id("users"),
+    chatId: v.string(),
+    title: v.string(),
+    category: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("chats", {
+      customChatId: args.chatId,
       userId: args.userId,
       createdAt: Date.now(),
-      title: "New Chat",
-      category: "New Chat",
+      title: args.title,
+      category: args.category,
     });
   },
 });
@@ -30,7 +28,7 @@ export const createChat = internalMutation({
 // Helper internal query to get previous messages
 export const getPreviousMessages = internalQuery({
   args: {
-    chatId: v.id("chats"),
+    chatId: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -44,7 +42,7 @@ export const getPreviousMessages = internalQuery({
 // Helper internal mutation to insert a message
 export const insertMessage = internalMutation({
   args: {
-    chatId: v.id("chats"),
+    chatId: v.string(),
     userMessage: v.string(),
     botResponse: v.string(),
   },
@@ -55,6 +53,19 @@ export const insertMessage = internalMutation({
       botResponse: args.botResponse,
       createdAt: Date.now(),
     });
+  },
+});
+
+// Helper internal query to get a chat
+export const getChat = internalQuery({
+  args: {
+    chatId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("chats")
+      .withIndex("by_custom_chat_id", (q) => q.eq("customChatId", args.chatId))
+      .first();
   },
 });
 
@@ -73,26 +84,42 @@ export const updateMessage = internalMutation({
 
 export const generate = action({
   args: {
-    chatId: v.optional(v.id("chats")),
+    chatId: v.optional(v.string()),
     userMessage: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    let chatId: Id<"chats">;
+    let chatId: string;
     let formattedPreviousMessages: ChatCompletionMessageParam[] = [];
 
     if (!userId) {
-      return [];
+      return null;
     }
 
     console.log("args.chatId", args.chatId);
 
-    if (!args.chatId) {
-      chatId = await ctx.runMutation(internal.generate.createChat, {
+    // check if the chatId exists in the database and belongs to the user
+    const chat = args.chatId
+      ? await ctx.runQuery(internal.generate.getChat, {
+          chatId: args.chatId,
+        })
+      : null;
+
+    if (chat && chat.userId !== userId) {
+      return null;
+    }
+
+    if (!chat) {
+      const customChatId = args.chatId || crypto.randomUUID();
+      await ctx.runMutation(internal.generate.createChat, {
+        chatId: customChatId,
         userId: userId as Id<"users">,
+        title: args.userMessage,
+        category: "Health Insurance",
       });
+      chatId = customChatId;
     } else {
-      chatId = args.chatId;
+      chatId = chat.customChatId;
       // get the previous messages
       const previousMessages = await ctx.runQuery(
         internal.generate.getPreviousMessages,
@@ -128,7 +155,7 @@ export const generate = action({
     });
 
     const completion = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "google/gemini-2.5-flash",
       messages: formattedPreviousMessages,
       stream: true,
     });

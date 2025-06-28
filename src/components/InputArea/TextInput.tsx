@@ -10,6 +10,7 @@ import { useUserSearchInput } from "@/store/userSearchInput";
 
 interface TextInputProps {
   height: number;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
 // Define methods that can be called on the TextInput ref
@@ -18,7 +19,10 @@ export interface TextInputRef {
 }
 
 const TextInput = memo(
-  forwardRef<TextInputRef, TextInputProps>(function TextInput({ height }, ref) {
+  forwardRef<TextInputRef, TextInputProps>(function TextInput(
+    { height, onKeyDown },
+    ref
+  ) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const { userSearchInput, setUserSearchInput } = useUserSearchInput();
 
@@ -69,6 +73,7 @@ const TextInput = memo(
             height: height + "px",
           }}
           onChange={handleChange}
+          onKeyDown={onKeyDown}
         />
       </div>
     );

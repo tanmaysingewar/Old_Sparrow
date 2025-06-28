@@ -223,7 +223,7 @@ const MessageBubble = ({ message }: { message: Message }) => {
             <div
               className={`p-3 rounded-3xl w-fit max-w-full  dark:bg-transparent dark:text-white rounded-bl-lg mr-auto`}
             >
-              {message.content === "loading" ? (
+              {message.content === "Loading..." ? (
                 <LoadingIndicator />
               ) : (
                 <div className="markdown-content">
