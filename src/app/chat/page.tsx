@@ -7,9 +7,7 @@ export default function ChatPage() {
   const [auth, setAuth] = useState<string | null>(null);
   const router = useRouter();
   useEffect(() => {
-    const auth = localStorage.getItem(
-      "__convexAuthJWT_httpssuccessfultrout122convexcloud"
-    );
+    const auth = localStorage.getItem("user-session-storage");
     if (!auth) {
       router.push("/");
     }
