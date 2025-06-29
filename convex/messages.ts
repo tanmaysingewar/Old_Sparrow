@@ -29,20 +29,26 @@ export const add = mutation({
   args: {
     chatId: v.string(),
     userMessage: v.string(),
-    postBotResponse: v.string(),
+    botResponses: v.optional(
+      v.array(
+        v.object({
+          response: v.string(),
+          researchItems: v.optional(
+            v.array(
+              v.object({
+                title: v.string(),
+                content: v.string(),
+                isCompleted: v.optional(v.boolean()),
+              })
+            )
+          ),
+        })
+      )
+    ),
     fileId: v.optional(v.id("_storage")),
     fileType: v.optional(v.string()),
     fileName: v.optional(v.string()),
     fileSize: v.optional(v.number()),
-    researchItems: v.optional(
-      v.array(
-        v.object({
-          title: v.string(),
-          content: v.string(),
-          isCompleted: v.optional(v.boolean()),
-        })
-      )
-    ),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -52,14 +58,13 @@ export const add = mutation({
 
     await ctx.db.insert("messages", {
       userMessage: args.userMessage,
-      postBotResponse: args.postBotResponse,
+      botResponses: args.botResponses || [],
       chatId: args.chatId,
       createdAt: Date.now(),
       fileId: args.fileId || undefined,
       fileType: args.fileType || undefined,
       fileName: args.fileName || undefined,
       fileSize: args.fileSize || undefined,
-      researchItems: args.researchItems || undefined,
     });
   },
 });

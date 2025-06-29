@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import InputBox from "@/components/InputArea/InputBox";
 import Header from "@/components/Header";
@@ -57,40 +57,42 @@ export default function ChatPage() {
         const newMessages = getMessages
           .slice()
           .reverse()
-          .flatMap((message) => [
-            {
-              role: "user",
-              content: message.userMessage,
-              createdAt: message.createdAt,
-              fileUrl: "",
-              fileType: "",
-              fileName: "",
-              researchItems: message.researchItems,
-            },
-            {
-              role: "assistant",
-              preBotResponse: message.preBotResponse,
-              content: message.postBotResponse || "",
-              createdAt: message.createdAt,
-              fileUrl: "",
-              fileType: "",
-              fileName: "",
-              researchItems: message.researchItems,
-            },
-          ]);
+          .flatMap((message) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const messages: any[] = [
+              {
+                role: "user" as const,
+                content: message.userMessage,
+                createdAt: message.createdAt,
+                fileUrl: "",
+                fileType: "",
+                fileName: "",
+              },
+            ];
+
+            // Add assistant messages for each bot response
+            if (message.botResponses && message.botResponses.length > 0) {
+              message.botResponses.forEach((botResponse, index) => {
+                messages.push({
+                  role: "assistant" as const,
+                  content: botResponse.response,
+                  createdAt: message.createdAt,
+                  fileUrl: "",
+                  fileType: "",
+                  fileName: "",
+                  researchItems: botResponse.researchItems,
+                  botResponseIndex: index,
+                });
+              });
+            }
+
+            return messages;
+          });
         setMessages(newMessages);
         saveLocalMessages(newMessages, chatId);
       }
     }
   }, [getMessages, chatId]);
-
-  const handleSendMessage = useCallback(
-    async (messageContent: string, isInitialMessage: boolean) => {
-      console.log("handleSendMessage", messageContent, isInitialMessage);
-      return Promise.resolve();
-    },
-    []
-  );
 
   return (
     <div className={`flex w-full h-full dark:bg-[#222325] bg-[#f8f8f7]`}>
@@ -156,7 +158,6 @@ export default function ChatPage() {
                       messages={messages}
                       chatInitiated={false}
                       setMessages={setMessages}
-                      handleSendMessage={handleSendMessage}
                     />
                   ))}
                   <div ref={messagesEndRef} className="pb-[130px]" />

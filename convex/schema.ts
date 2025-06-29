@@ -28,18 +28,23 @@ export default defineSchema({
     fileType: v.optional(v.string()), // Optional, defaults to empty
     fileName: v.optional(v.string()), // Optional, defaults to empty
     fileSize: v.optional(v.number()), // Optional, defaults to empty
-    // Add research items array
-    preBotResponse: v.optional(v.string()),
-    researchItems: v.optional(
+    // Bot responses array with dynamic responses and research items
+    botResponses: v.optional(
       v.array(
         v.object({
-          title: v.string(),
-          content: v.string(),
-          isCompleted: v.optional(v.boolean()),
+          response: v.string(),
+          researchItems: v.optional(
+            v.array(
+              v.object({
+                title: v.string(),
+                content: v.string(),
+                isCompleted: v.optional(v.boolean()),
+              })
+            )
+          ),
         })
       )
     ),
-    postBotResponse: v.optional(v.string()),
   })
     .index("by_chat", ["chatId"])
     .index("by_chat_created", ["chatId", "createdAt"]),

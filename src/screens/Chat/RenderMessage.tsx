@@ -1,14 +1,13 @@
 "use client";
-import React, { memo, useState } from "react";
+import React, { memo, useState, useRef, useEffect } from "react";
 import MessageRenderer from "@/screens/Chat/Markdown";
 import Spinner from "@/components/Spinner";
 import PDFIcon from "@/components/InputArea/assets/pdf";
 import DOCIcon from "@/components/InputArea/assets/doc";
-import { CheckCircle2, ChevronDown, ChevronRight, Circle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
-  preBotResponse: string;
   content: string;
   fileUrl?: string;
   fileType?: string;
@@ -16,8 +15,9 @@ interface Message {
   researchItems?: {
     title: string;
     content: string;
-    isCompleted: boolean;
+    isCompleted?: boolean;
   }[];
+  botResponseIndex?: number;
 }
 
 interface RenderMessageProps {
@@ -26,11 +26,6 @@ interface RenderMessageProps {
   messages: Message[];
   chatInitiated: boolean;
   setMessages: (messages: Message[]) => void;
-  handleSendMessage: (
-    messageContent: string,
-    editedMessage: boolean,
-    messagesUpToEdit?: Message[]
-  ) => Promise<void>;
 }
 
 /**
@@ -149,6 +144,8 @@ const RenderMessageOnScreen = ({
 
 const MessageBubble = ({ message }: { message: Message }) => {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [itemHeights, setItemHeights] = useState<{ [key: number]: number }>({});
+  const contentRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   const toggleItem = (index: number) => {
     const newExpandedItems = new Set(expandedItems);
@@ -159,6 +156,18 @@ const MessageBubble = ({ message }: { message: Message }) => {
     }
     setExpandedItems(newExpandedItems);
   };
+
+  useEffect(() => {
+    // Calculate heights for all research items
+    const heights: { [key: number]: number } = {};
+    message.researchItems?.forEach((_, index) => {
+      const contentElement = contentRefs.current[index];
+      if (contentElement) {
+        heights[index] = contentElement.scrollHeight;
+      }
+    });
+    setItemHeights(heights);
+  }, [message.researchItems]);
 
   return (
     <>
@@ -240,18 +249,16 @@ const MessageBubble = ({ message }: { message: Message }) => {
         {message.role === "assistant" && (
           <div>
             <div
-              className={`p-3 rounded-3xl w-fit max-w-full  dark:bg-transparent dark:text-white rounded-bl-lg mr-auto`}
+              className={`p-3 rounded-3xl w-fit max-w-full dark:bg-transparent dark:text-white rounded-bl-lg mr-auto mb-[-25px]`}
             >
               {message.content === "Loading..." ? (
                 <LoadingIndicator />
               ) : (
                 <div className="markdown-content">
-                  {message.preBotResponse && (
-                    <MessageRenderer
-                      key={`${message.preBotResponse}-${Date.now()}-preBotResponse`}
-                      content={message.preBotResponse || " "}
-                    />
-                  )}
+                  <MessageRenderer
+                    key={`${message.content}-${Date.now()}`}
+                    content={message.content || " "}
+                  />
                   {message.researchItems?.map((item, index) => {
                     const isExpanded = expandedItems.has(index);
                     return (
@@ -270,21 +277,41 @@ const MessageBubble = ({ message }: { message: Message }) => {
                           <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">
                             {item.title}
                           </span>
-                          {isExpanded ? (
-                            <ChevronDown className="w-3 h-3 text-neutral-400 ml-1" />
-                          ) : (
-                            <ChevronRight className="w-3 h-3 text-neutral-400 ml-1" />
-                          )}
+                          <ChevronRight
+                            className={`w-3 h-3 text-neutral-400 ml-1 transition-transform duration-200 ${
+                              isExpanded ? "rotate-90" : "rotate-0"
+                            }`}
+                          />
                         </div>
 
-                        {/* Content between items - collapsible */}
-                        {isExpanded && (
-                          <div className="ml-5 my-1">
-                            <span className="text-[12px] text-neutral-500 dark:text-neutral-400 block font-medium">
-                              {item.content}
-                            </span>
+                        {/* Content between items - collapsible with animation only on collapse */}
+                        <div
+                          className={`ml-5 overflow-hidden ${
+                            isExpanded
+                              ? "opacity-100 my-1 transition-all duration-200"
+                              : "opacity-0 my-0 transition-all duration-200"
+                          }`}
+                          style={{
+                            height: isExpanded
+                              ? `${itemHeights[index] || 0}px`
+                              : "0px",
+                          }}
+                        >
+                          <div
+                            ref={(el) => {
+                              contentRefs.current[index] = el;
+                            }}
+                            className="py-1"
+                          >
+                            <div className="text-[12px] text-neutral-500 dark:text-neutral-400 block font-medium mb-[-20px]">
+                              {/* {item.content} */}
+                              <MessageRenderer
+                                key={`${item.content}-${Date.now()}`}
+                                content={item.content || " "}
+                              />
+                            </div>
                           </div>
-                        )}
+                        </div>
 
                         {/* Vertical dashed line spanning the full height */}
                         {index !== (message.researchItems?.length || 0) - 1 && (
@@ -293,11 +320,6 @@ const MessageBubble = ({ message }: { message: Message }) => {
                       </div>
                     );
                   })}
-                  <div className="mt-5"></div>
-                  <MessageRenderer
-                    key={`${message.content}-${Date.now()}`}
-                    content={message.content || " "}
-                  />
                 </div>
               )}
             </div>

@@ -44,15 +44,28 @@ export const insertMessage = internalMutation({
   args: {
     chatId: v.string(),
     userMessage: v.string(),
-    preBotResponse: v.string(),
-    postBotResponse: v.string(),
+    botResponses: v.optional(
+      v.array(
+        v.object({
+          response: v.string(),
+          researchItems: v.optional(
+            v.array(
+              v.object({
+                title: v.string(),
+                content: v.string(),
+                isCompleted: v.optional(v.boolean()),
+              })
+            )
+          ),
+        })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("messages", {
       chatId: args.chatId,
       userMessage: args.userMessage,
-      preBotResponse: args.preBotResponse,
-      postBotResponse: args.postBotResponse,
+      botResponses: args.botResponses || [],
       createdAt: Date.now(),
     });
   },
@@ -71,35 +84,89 @@ export const getChat = internalQuery({
   },
 });
 
-// Helper internal mutation to update a message's bot response
-export const updateMessage = internalMutation({
+// Helper internal mutation to update bot responses
+export const updateBotResponses = internalMutation({
   args: {
     messageId: v.id("messages"),
-    preBotResponse: v.string(),
-    postBotResponse: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.patch(args.messageId, {
-      preBotResponse: args.preBotResponse,
-      postBotResponse: args.postBotResponse,
-    });
-  },
-});
-
-export const updateMessageResearchItems = internalMutation({
-  args: {
-    messageId: v.id("messages"),
-    researchItems: v.array(
+    botResponses: v.array(
       v.object({
-        title: v.string(),
-        content: v.string(),
-        isCompleted: v.optional(v.boolean()),
+        response: v.string(),
+        researchItems: v.optional(
+          v.array(
+            v.object({
+              title: v.string(),
+              content: v.string(),
+              isCompleted: v.optional(v.boolean()),
+            })
+          )
+        ),
       })
     ),
   },
   handler: async (ctx, args) => {
     return await ctx.db.patch(args.messageId, {
+      botResponses: args.botResponses,
+    });
+  },
+});
+
+export const addOnlyBotResponse = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    response: v.string(),
+    researchItems: v.optional(
+      v.array(
+        v.object({
+          title: v.string(),
+          content: v.string(),
+          isCompleted: v.optional(v.boolean()),
+        })
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      return;
+    }
+    const currentBotResponses = message.botResponses || [];
+    const newBotResponse = {
+      response: args.response,
       researchItems: args.researchItems,
+    };
+    return await ctx.db.patch(args.messageId, {
+      botResponses: [...currentBotResponses, newBotResponse],
+    });
+  },
+});
+
+export const updateBotResponseAtIndex = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    responseIndex: v.number(),
+    response: v.string(),
+    researchItems: v.optional(
+      v.array(
+        v.object({
+          title: v.string(),
+          content: v.string(),
+          isCompleted: v.optional(v.boolean()),
+        })
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      return;
+    }
+    const botResponses = message.botResponses || [];
+    if (botResponses.length > args.responseIndex) {
+      botResponses[args.responseIndex].response = args.response;
+      botResponses[args.responseIndex].researchItems = args.researchItems;
+    }
+    return await ctx.db.patch(args.messageId, {
+      botResponses: botResponses,
     });
   },
 });
@@ -107,6 +174,7 @@ export const updateMessageResearchItems = internalMutation({
 export const completeResearchItem = internalMutation({
   args: {
     messageId: v.id("messages"),
+    responseIndex: v.number(),
     researchItemIndex: v.number(),
   },
   handler: async (ctx, args) => {
@@ -114,12 +182,19 @@ export const completeResearchItem = internalMutation({
     if (!message) {
       return;
     }
-    const researchItems = message.researchItems || [];
-    if (researchItems.length > args.researchItemIndex) {
-      researchItems[args.researchItemIndex].isCompleted = true;
+    const botResponses = message.botResponses || [];
+    if (
+      botResponses.length > args.responseIndex &&
+      botResponses[args.responseIndex].researchItems &&
+      botResponses[args.responseIndex].researchItems!.length >
+        args.researchItemIndex
+    ) {
+      botResponses[args.responseIndex].researchItems![
+        args.researchItemIndex
+      ].isCompleted = true;
     }
     return await ctx.db.patch(args.messageId, {
-      researchItems: researchItems,
+      botResponses: botResponses,
     });
   },
 });
@@ -176,9 +251,16 @@ export const generate = action({
           role: "user",
           content: message.userMessage,
         });
+
+        // Concatenate all bot responses for this message
+        const allBotResponses = message.botResponses || [];
+        const combinedBotResponse = allBotResponses
+          .map((botResponse: any) => botResponse.response)
+          .join("\n\n");
+
         formattedPreviousMessages.push({
           role: "assistant",
-          content: message.botResponse,
+          content: combinedBotResponse,
         });
       });
     }
@@ -191,14 +273,6 @@ export const generate = action({
       content: userMessage,
     });
 
-    // Create initial message with empty bot response
-    const messageId = await ctx.runMutation(internal.generate.insertMessage, {
-      chatId: chatId,
-      userMessage: userMessage,
-      preBotResponse: "",
-      postBotResponse: "",
-    });
-
     const openaiClient = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -209,20 +283,31 @@ export const generate = action({
       messages: formattedPreviousMessages,
       stream: true,
     });
-    // TODO: Generate the preBotResponse to the message
-    let preBotResponse = "Hey thank you for asking";
 
-    // Update the message with the preBotResponse
-    await ctx.runMutation(internal.generate.updateMessage, {
-      messageId: messageId,
-      preBotResponse: preBotResponse,
-      postBotResponse: "",
+    // TODO: Generate the initial bot response
+    // First bot response with research items
+    let initialBotResponse = "Hey thank you for asking";
+
+    // Create initial message with preBotResponse bot responses
+    const messageId = await ctx.runMutation(internal.generate.insertMessage, {
+      chatId: chatId,
+      userMessage: userMessage,
+      botResponses: [
+        {
+          response: initialBotResponse,
+          researchItems: [],
+        },
+      ],
     });
 
+    // TODO: Do the research
+
     // TODO: Generate the research items
-    // Update the message with the research items
-    await ctx.runMutation(internal.generate.updateMessageResearchItems, {
+    // Add the first bot response with research items
+    await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
       messageId: messageId,
+      responseIndex: 0,
+      response: initialBotResponse,
       researchItems: [
         {
           title: "Research current health insurance landscape and options",
@@ -248,22 +333,35 @@ export const generate = action({
     // TODO: Complete the research item
     await ctx.runMutation(internal.generate.completeResearchItem, {
       messageId: messageId,
+      responseIndex: 0,
       researchItemIndex: 0,
     });
 
     let accumulatedResponse = "";
+
+    // TODO: Add the Final Bot Response
+    let isFirstChunk = true;
 
     for await (const chunk of completion) {
       const chunkContent = chunk.choices[0].delta.content || "";
       // Accumulate the response
       accumulatedResponse += chunkContent;
 
-      // Update the message with the accumulated response
-      await ctx.runMutation(internal.generate.updateMessage, {
-        messageId: messageId,
-        preBotResponse: preBotResponse,
-        postBotResponse: accumulatedResponse,
-      });
+      if (isFirstChunk) {
+        // Add the second bot response for the streaming content
+        await ctx.runMutation(internal.generate.addOnlyBotResponse, {
+          messageId: messageId,
+          response: accumulatedResponse,
+        });
+        isFirstChunk = false;
+      } else {
+        // Update the second bot response with the accumulated content
+        await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
+          messageId: messageId,
+          responseIndex: 1,
+          response: accumulatedResponse,
+        });
+      }
     }
   },
 });
