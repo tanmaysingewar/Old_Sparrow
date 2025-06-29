@@ -1,16 +1,23 @@
 "use client";
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import MessageRenderer from "@/screens/Chat/Markdown";
 import Spinner from "@/components/Spinner";
 import PDFIcon from "@/components/InputArea/assets/pdf";
 import DOCIcon from "@/components/InputArea/assets/doc";
+import { CheckCircle2, ChevronDown, ChevronRight, Circle } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
+  preBotResponse: string;
   content: string;
   fileUrl?: string;
   fileType?: string;
   fileName?: string;
+  researchItems?: {
+    title: string;
+    content: string;
+    isCompleted: boolean;
+  }[];
 }
 
 interface RenderMessageProps {
@@ -141,6 +148,18 @@ const RenderMessageOnScreen = ({
 };
 
 const MessageBubble = ({ message }: { message: Message }) => {
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  const toggleItem = (index: number) => {
+    const newExpandedItems = new Set(expandedItems);
+    if (newExpandedItems.has(index)) {
+      newExpandedItems.delete(index);
+    } else {
+      newExpandedItems.add(index);
+    }
+    setExpandedItems(newExpandedItems);
+  };
+
   return (
     <>
       <div>
@@ -227,6 +246,54 @@ const MessageBubble = ({ message }: { message: Message }) => {
                 <LoadingIndicator />
               ) : (
                 <div className="markdown-content">
+                  {message.preBotResponse && (
+                    <MessageRenderer
+                      key={`${message.preBotResponse}-${Date.now()}-preBotResponse`}
+                      content={message.preBotResponse || " "}
+                    />
+                  )}
+                  {message.researchItems?.map((item, index) => {
+                    const isExpanded = expandedItems.has(index);
+                    return (
+                      <div key={index} className="relative mb-3">
+                        {/* First CheckCircle2 item */}
+                        <div
+                          className="flex flex-row justify-start items-center cursor-pointer w-fit select-none"
+                          onClick={() => toggleItem(index)}
+                        >
+                          {item.isCompleted ? (
+                            <CheckCircle2 className="w-4 h-4 text-neutral-400" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-neutral-400" />
+                          )}
+
+                          <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">
+                            {item.title}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronDown className="w-3 h-3 text-neutral-400 ml-1" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3 text-neutral-400 ml-1" />
+                          )}
+                        </div>
+
+                        {/* Content between items - collapsible */}
+                        {isExpanded && (
+                          <div className="ml-5 my-1">
+                            <span className="text-[12px] text-neutral-500 dark:text-neutral-400 block font-medium">
+                              {item.content}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Vertical dashed line spanning the full height */}
+                        {index !== (message.researchItems?.length || 0) - 1 && (
+                          <div className="absolute left-[7px] top-5 bottom-[-14px] w-0 border-l-1 border-dashed border-gray-300 dark:border-[#4a4a4b]"></div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className="mt-5"></div>
                   <MessageRenderer
                     key={`${message.content}-${Date.now()}`}
                     content={message.content || " "}

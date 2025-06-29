@@ -65,14 +65,17 @@ export default function ChatPage() {
               fileUrl: "",
               fileType: "",
               fileName: "",
+              researchItems: message.researchItems,
             },
             {
               role: "assistant",
-              content: message.botResponse,
+              preBotResponse: message.preBotResponse,
+              content: message.postBotResponse || "",
               createdAt: message.createdAt,
               fileUrl: "",
               fileType: "",
               fileName: "",
+              researchItems: message.researchItems,
             },
           ]);
         setMessages(newMessages);

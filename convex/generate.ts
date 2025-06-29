@@ -44,13 +44,15 @@ export const insertMessage = internalMutation({
   args: {
     chatId: v.string(),
     userMessage: v.string(),
-    botResponse: v.string(),
+    preBotResponse: v.string(),
+    postBotResponse: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("messages", {
       chatId: args.chatId,
       userMessage: args.userMessage,
-      botResponse: args.botResponse,
+      preBotResponse: args.preBotResponse,
+      postBotResponse: args.postBotResponse,
       createdAt: Date.now(),
     });
   },
@@ -73,11 +75,51 @@ export const getChat = internalQuery({
 export const updateMessage = internalMutation({
   args: {
     messageId: v.id("messages"),
-    botResponse: v.string(),
+    preBotResponse: v.string(),
+    postBotResponse: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db.patch(args.messageId, {
-      botResponse: args.botResponse,
+      preBotResponse: args.preBotResponse,
+      postBotResponse: args.postBotResponse,
+    });
+  },
+});
+
+export const updateMessageResearchItems = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    researchItems: v.array(
+      v.object({
+        title: v.string(),
+        content: v.string(),
+        isCompleted: v.optional(v.boolean()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.messageId, {
+      researchItems: args.researchItems,
+    });
+  },
+});
+
+export const completeResearchItem = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    researchItemIndex: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      return;
+    }
+    const researchItems = message.researchItems || [];
+    if (researchItems.length > args.researchItemIndex) {
+      researchItems[args.researchItemIndex].isCompleted = true;
+    }
+    return await ctx.db.patch(args.messageId, {
+      researchItems: researchItems,
     });
   },
 });
@@ -149,6 +191,14 @@ export const generate = action({
       content: userMessage,
     });
 
+    // Create initial message with empty bot response
+    const messageId = await ctx.runMutation(internal.generate.insertMessage, {
+      chatId: chatId,
+      userMessage: userMessage,
+      preBotResponse: "",
+      postBotResponse: "",
+    });
+
     const openaiClient = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -159,12 +209,46 @@ export const generate = action({
       messages: formattedPreviousMessages,
       stream: true,
     });
+    // TODO: Generate the preBotResponse to the message
+    let preBotResponse = "Hey thank you for asking";
 
-    // Create initial message with empty bot response
-    const messageId = await ctx.runMutation(internal.generate.insertMessage, {
-      chatId: chatId,
-      userMessage: userMessage,
-      botResponse: "",
+    // Update the message with the preBotResponse
+    await ctx.runMutation(internal.generate.updateMessage, {
+      messageId: messageId,
+      preBotResponse: preBotResponse,
+      postBotResponse: "",
+    });
+
+    // TODO: Generate the research items
+    // Update the message with the research items
+    await ctx.runMutation(internal.generate.updateMessageResearchItems, {
+      messageId: messageId,
+      researchItems: [
+        {
+          title: "Research current health insurance landscape and options",
+          content:
+            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+          isCompleted: true,
+        },
+        {
+          title: "Research the best health insurance plans for you",
+          content:
+            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+          isCompleted: true,
+        },
+        {
+          title: "Research the best health insurance plans for your family",
+          content:
+            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+          isCompleted: true,
+        },
+      ],
+    });
+
+    // TODO: Complete the research item
+    await ctx.runMutation(internal.generate.completeResearchItem, {
+      messageId: messageId,
+      researchItemIndex: 0,
     });
 
     let accumulatedResponse = "";
@@ -177,7 +261,8 @@ export const generate = action({
       // Update the message with the accumulated response
       await ctx.runMutation(internal.generate.updateMessage, {
         messageId: messageId,
-        botResponse: accumulatedResponse,
+        preBotResponse: preBotResponse,
+        postBotResponse: accumulatedResponse,
       });
     }
   },
