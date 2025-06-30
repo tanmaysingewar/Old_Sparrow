@@ -213,8 +213,6 @@ export const generate = action({
       return null;
     }
 
-    console.log("args.chatId", args.chatId);
-
     // check if the chatId exists in the database and belongs to the user
     const chat = args.chatId
       ? await ctx.runQuery(internal.generate.getChat, {
@@ -247,11 +245,6 @@ export const generate = action({
 
       // Format the previous messages for the LLM
       previousMessages.forEach((message: any) => {
-        formattedPreviousMessages.push({
-          role: "user",
-          content: message.userMessage,
-        });
-
         // Concatenate all bot responses for this message
         const allBotResponses = message.botResponses || [];
         const combinedBotResponse = allBotResponses
@@ -262,7 +255,12 @@ export const generate = action({
           role: "assistant",
           content: combinedBotResponse,
         });
+        formattedPreviousMessages.push({
+          role: "user",
+          content: message.userMessage,
+        });
       });
+      formattedPreviousMessages.reverse();
     }
 
     // get the user message
@@ -273,20 +271,77 @@ export const generate = action({
       content: userMessage,
     });
 
+    console.log(formattedPreviousMessages);
+
     const openaiClient = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
     });
 
-    const completion = await openaiClient.chat.completions.create({
-      model: "google/gemini-2.5-flash",
-      messages: formattedPreviousMessages,
+    let initialBotResponse = "";
+
+    // TODO: Generate the initial bot response
+    const completion_initial = await openaiClient.chat.completions.create({
+      model: "deepseek/deepseek-r1-0528",
+      messages: [
+        {
+          role: "system",
+          content: `
+# Old Sparrow - Health Insurance Advisor
+
+You are Old Sparrow, a wise and caring health Insurance Advisor with a warm, conversational personality. Your ONLY role is to collect required user information through natural conversation.
+
+## Required Information to Collect:
+1. **Age** - User's current age in years
+2. **City** - User's current city of residence 
+3. **Pre-existing diseases** - Any current medical conditions, chronic illnesses, or ongoing health issues
+
+## Optional Information:
+4. **Specific questions/concerns** - Any particular health topics they want to know about
+
+## Response Guidelines:
+
+### When Information is Missing:
+- Greet warmly as Old Sparrow if it's the first interaction
+- Identify which specific required fields are missing
+- Ask ONLY for the missing information in a natural, conversational way
+- Ask all the missing information in the same message.
+- Use - for asking the missing information.
+- Vary your language and approach to feel personal and engaging
+- Be encouraging and patient
+
+### When All Required Information is Complete:
+Provide a personalized acknowledgment that:
+- Thanks them warmly
+- Mentions you're working on their personalized guidance
+- References their specific age, city, and health profile naturally
+- Asks them to wait while you prepare their information
+
+## Personality Traits:
+- Wise but approachable
+- Caring and empathetic
+- Uses natural, varied language
+- Feels like talking to a knowledgeable friend
+- Patient and understanding
+
+## Important Rules:
+- NEVER provide health advice or information beyond collecting data
+- Only ask for missing required fields, not all fields every time
+- Make each interaction feel personal and unique
+- Always validate all three required fields before acknowledgment
+- Do not engage in topics outside of information collection
+ `,
+        },
+        ...formattedPreviousMessages,
+      ],
       stream: true,
     });
 
-    // TODO: Generate the initial bot response
-    // First bot response with research items
-    let initialBotResponse = "Hey thank you for asking";
+    for await (const chunk of completion_initial) {
+      const chunkContent = chunk.choices[0].delta.content || "";
+      // Accumulate the response
+      initialBotResponse += chunkContent;
+    }
 
     // Create initial message with preBotResponse bot responses
     const messageId = await ctx.runMutation(internal.generate.insertMessage, {
@@ -300,35 +355,41 @@ export const generate = action({
       ],
     });
 
+    const completion = await openaiClient.chat.completions.create({
+      model: "google/gemini-2.5-flash",
+      messages: formattedPreviousMessages,
+      stream: true,
+    });
+
     // TODO: Do the research
 
     // TODO: Generate the research items
     // Add the first bot response with research items
-    await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
-      messageId: messageId,
-      responseIndex: 0,
-      response: initialBotResponse,
-      researchItems: [
-        {
-          title: "Research current health insurance landscape and options",
-          content:
-            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-          isCompleted: true,
-        },
-        {
-          title: "Research the best health insurance plans for you",
-          content:
-            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-          isCompleted: true,
-        },
-        {
-          title: "Research the best health insurance plans for your family",
-          content:
-            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-          isCompleted: true,
-        },
-      ],
-    });
+    // await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
+    //   messageId: messageId,
+    //   responseIndex: 0,
+    //   response: initialBotResponse,
+    //   researchItems: [
+    //     {
+    //       title: "Research current health insurance landscape and options",
+    //       content:
+    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+    //       isCompleted: true,
+    //     },
+    //     {
+    //       title: "Research the best health insurance plans for you",
+    //       content:
+    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+    //       isCompleted: true,
+    //     },
+    //     {
+    //       title: "Research the best health insurance plans for your family",
+    //       content:
+    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+    //       isCompleted: true,
+    //     },
+    //   ],
+    // });
 
     // TODO: Complete the research item
     await ctx.runMutation(internal.generate.completeResearchItem, {
@@ -337,31 +398,31 @@ export const generate = action({
       researchItemIndex: 0,
     });
 
-    let accumulatedResponse = "";
+    // let accumulatedResponse = "";
 
-    // TODO: Add the Final Bot Response
-    let isFirstChunk = true;
+    // // TODO: Add the Final Bot Response
+    // let isFirstChunk = true;
 
-    for await (const chunk of completion) {
-      const chunkContent = chunk.choices[0].delta.content || "";
-      // Accumulate the response
-      accumulatedResponse += chunkContent;
+    // for await (const chunk of completion) {
+    //   const chunkContent = chunk.choices[0].delta.content || "";
+    //   // Accumulate the response
+    //   accumulatedResponse += chunkContent;
 
-      if (isFirstChunk) {
-        // Add the second bot response for the streaming content
-        await ctx.runMutation(internal.generate.addOnlyBotResponse, {
-          messageId: messageId,
-          response: accumulatedResponse,
-        });
-        isFirstChunk = false;
-      } else {
-        // Update the second bot response with the accumulated content
-        await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
-          messageId: messageId,
-          responseIndex: 1,
-          response: accumulatedResponse,
-        });
-      }
-    }
+    //   if (isFirstChunk) {
+    //     // Add the second bot response for the streaming content
+    //     await ctx.runMutation(internal.generate.addOnlyBotResponse, {
+    //       messageId: messageId,
+    //       response: accumulatedResponse,
+    //     });
+    //     isFirstChunk = false;
+    //   } else {
+    //     // Update the second bot response with the accumulated content
+    //     await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
+    //       messageId: messageId,
+    //       responseIndex: 1,
+    //       response: accumulatedResponse,
+    //     });
+    //   }
+    // }
   },
 });
