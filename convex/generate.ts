@@ -10,7 +10,11 @@ import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
-import { BOT_POLICIES_SELECTION_PROMPT, INITIAL_BOT_PROMPT } from "./prompts";
+import {
+  BOT_POLICIES_SELECTION_PROMPT,
+  INITIAL_BOT_PROMPT,
+  POLICY_QUESTIONS_PROMPT,
+} from "./prompts";
 
 // Helper internal mutation to create a new chat
 export const createChat = internalMutation({
@@ -223,10 +227,6 @@ const handleInitialBotResponse = async (
   const jsonObject = initialBotResponse.match(
     /```personal_info\n{[\s\S]*?}\n```/g
   );
-  if (jsonObject && jsonObject.length > 0) {
-    const jsonObjectString = jsonObject[0];
-    initialBotResponse = initialBotResponse.replace(jsonObjectString, "");
-  }
 
   // Create initial message with preBotResponse bot responses
   const messageId = await ctx.runMutation(internal.generate.insertMessage, {
@@ -272,6 +272,11 @@ export const generate = action({
     const userId = await getAuthUserId(ctx);
     let chatId: string;
     let formattedPreviousMessages: ChatCompletionMessageParam[] = [];
+
+    const openaiClient = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY,
+    });
 
     if (!userId) {
       return null;
@@ -329,11 +334,6 @@ export const generate = action({
 
     // ------------ Function to handle the initial bot response -------------------------
 
-    const openaiClient = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY,
-    });
-
     let selectedPoliciesJsonObject;
 
     // check for the ```selected_policies``` in the user message
@@ -360,17 +360,38 @@ export const generate = action({
       );
       return;
     } else {
+      let personalInfoJsonObject:
+        | { city: string; age: string; prd: string; specific_questions: string }
+        | undefined;
+
+      formattedPreviousMessages.map((message) => {
+        if (message.role === "assistant") {
+          const rawJSONObject = message.content
+            ?.toString()
+            .match(/```personal_info\n{[\s\S]*?}\n```/g);
+          const jsonContent = rawJSONObject?.[0]
+            .replace(/```personal_info\n/, "")
+            .replace(/\n```$/, "");
+          if (jsonContent) {
+            personalInfoJsonObject = JSON.parse(jsonContent);
+          }
+        }
+      });
+
+      console.log("personalInfoJsonObject", personalInfoJsonObject);
+
       // TODO: Do the research
       const messageId = await ctx.runMutation(internal.generate.insertMessage, {
         chatId: chatId,
         userMessage: args.userMessage,
         botResponses: [
           {
-            response: "I am working on it",
+            response:
+              "Just give me few minutes to research the policies and then I will get back to you with the best options",
             researchItems: [
               {
                 title:
-                  "Customize the questions as per the info provided by user",
+                  "Customize the questions as per the user provided queries",
                 content: "Crafting the questions",
                 isCompleted: false,
               },
@@ -381,14 +402,17 @@ export const generate = action({
 
       // TODO: Customize the questions as per the info provided by user
 
+      const All_Questions =
+        POLICY_QUESTIONS_PROMPT +
+        "User personal question:" +
+        personalInfoJsonObject?.specific_questions;
+
       //   Create the research items
       await ctx.runMutation(internal.generate.completeResearchItem, {
         messageId: messageId,
         responseIndex: 0,
         researchItemIndex: 0,
       });
-
-      // TODO: Parallel - Shoot the API call to LLM with the Policy and questions
 
       // TODO: Update the research item
       await ctx.runMutation(internal.generate.insertResearchItem, {
@@ -401,14 +425,23 @@ export const generate = action({
           isCompleted: false,
         },
       });
+      // TODO: Parallel - Shoot the API call to LLM with the Policy and questions
+      const completion = await openaiClient.chat.completions.create({
+        model: "deepseek/deepseek-r1-0528",
+        messages: [
+          { role: "system", content: "You are a helpful assistant" },
+          {
+            role: "user",
+            content: "I have selected the following policies: ",
+          },
+        ],
+      });
 
       await ctx.runMutation(internal.generate.completeResearchItem, {
         messageId: messageId,
         responseIndex: 0,
         researchItemIndex: 1,
       });
-
-      // TODO: Update the research item
 
       // TODO: Make the another call to LLM combine all the responses and give the final response
 

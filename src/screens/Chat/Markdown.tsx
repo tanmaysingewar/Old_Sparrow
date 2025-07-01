@@ -74,6 +74,10 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
                 return <RenderPolicies policies={json} />;
               }
 
+              if (language === "personal_info") {
+                return;
+              }
+
               return match ? (
                 <div
                   style={{
