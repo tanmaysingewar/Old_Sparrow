@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useUserStore } from "@/store/userStore";
-import { User } from "lucide-react";
+import { Sidebar, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import Settings from "../Setting";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -44,7 +44,13 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export default function ChatHistoryDesktop() {
+export default function ChatHistoryDesktop({
+  hideChatHistory,
+  setHideChatHistory,
+}: {
+  hideChatHistory: boolean;
+  setHideChatHistory: (hideChatHistory: boolean) => void;
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -144,9 +150,17 @@ export default function ChatHistoryDesktop() {
 
   return (
     <div className="flex flex-col h-full dark:bg-[#212122] bg-[#ebebeb] select-none">
+      <div className="flex flex-row items-center gap-2 justify-between">
+        <div
+          className="m-1 ml-2 mt-3 hover:cursor-pointer hover:bg-neutral-200 dark:hover:bg-[#1a1a1a] rounded-sm p-1 w-fit text-neutral-400"
+          onClick={() => setHideChatHistory(!hideChatHistory)}
+        >
+          <Sidebar size={20} />
+        </div>
+      </div>
       <Button
         onClick={handleNewChatClick}
-        className="mx-3 mt-8 cursor-pointer dark:bg-[#323233] bg-white"
+        className="mx-3 mt-2 cursor-pointer dark:bg-[#323233] bg-white"
         variant="secondary"
       >
         <p className="text-[14px] font-semibold flex flex-row items-center gap-2">

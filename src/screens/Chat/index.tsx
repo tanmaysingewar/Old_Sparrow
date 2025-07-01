@@ -15,6 +15,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useUserStore } from "@/store/userStore";
 import { saveLocalMessages, getLocalMessages } from "@/store/saveMessages";
+import { Sidebar } from "lucide-react";
 
 const pacifico = Pacifico({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ const libreBaskerville = Libre_Baskerville({
 export default function ChatPage() {
   const searchParams = useSearchParams();
   const { user } = useUserStore();
+  const [hideChatHistory, setHideChatHistory] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,13 +103,28 @@ export default function ChatPage() {
         <title>Better Index</title>
         <meta name="description" content="example description" />
       </Head>
-      <div
-        className={cn(
-          "hidden lg:block max-w-[300px] w-full h-full fixed md:relative z-50 transition-transform duration-200 ease-in-out scrollbar-hide"
-        )}
-      >
-        <ChatHistoryDesktop />
-      </div>
+
+      {!hideChatHistory ? (
+        <div
+          className={cn(
+            "hidden lg:block max-w-[300px] w-full h-full fixed md:relative z-50 transition-transform duration-200 ease-in-out scrollbar-hide"
+          )}
+        >
+          <ChatHistoryDesktop
+            hideChatHistory={hideChatHistory}
+            setHideChatHistory={setHideChatHistory}
+          />
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-[#272728]">
+          <div
+            className="m-1 ml-2 mt-3 hover:cursor-pointer hover:bg-neutral-200 dark:hover:bg-[#1a1a1a] rounded-sm p-1 w-fit text-neutral-400"
+            onClick={() => setHideChatHistory(!hideChatHistory)}
+          >
+            <Sidebar size={20} />
+          </div>
+        </div>
+      )}
 
       {/* Main Chat Area */}
       <div
