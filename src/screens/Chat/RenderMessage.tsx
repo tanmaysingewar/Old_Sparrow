@@ -63,18 +63,16 @@ const RenderMessageOnScreen = ({
       <div
         className={`mb-2 hidden md:block font-lora ${
           message.role === "user" ? "ml-auto" : "mr-auto"
+        } ${
+          messages.length - 1 === index && message.role === "user"
+            ? "sticky top-4 z-10"
+            : ""
         }`}
         style={{
           minHeight: `${
-            messages.length - 1 === index &&
-            message.role === "user" &&
-            chatInitiated
-              ? "calc(-300px + 100vh)"
-              : messages.length - 1 === index &&
-                  message.role === "assistant" &&
-                  chatInitiated
-                ? "calc(-240px + 100vh)"
-                : "auto"
+            messages.length - 1 === index && message.role === "assistant"
+              ? "calc(-200px + 100vh)"
+              : "auto"
           }`,
         }}
       >
@@ -85,18 +83,20 @@ const RenderMessageOnScreen = ({
       <div
         className={`mb-2 block md:hidden font-lora ${
           message.role === "user" ? "ml-auto" : "mr-auto"
+        } ${
+          messages.length - 1 === index &&
+          chatInitiated &&
+          message.role === "user"
+            ? "sticky top-4 z-10"
+            : ""
         }`}
         style={{
           minHeight: `${
             messages.length - 1 === index &&
             chatInitiated &&
-            message.role === "user"
-              ? "calc(-360px + 100vh)"
-              : messages.length - 1 === index &&
-                  chatInitiated &&
-                  message.role === "assistant"
-                ? "calc(-380px + 100vh)"
-                : "auto"
+            message.role === "assistant"
+              ? "calc(-400px + 100vh)"
+              : "auto"
           }`,
         }}
       >
@@ -107,19 +107,8 @@ const RenderMessageOnScreen = ({
 };
 
 const MessageBubble = ({ message }: { message: Message }) => {
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [itemHeights, setItemHeights] = useState<{ [key: number]: number }>({});
   const contentRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-
-  const toggleItem = (index: number) => {
-    const newExpandedItems = new Set(expandedItems);
-    if (newExpandedItems.has(index)) {
-      newExpandedItems.delete(index);
-    } else {
-      newExpandedItems.add(index);
-    }
-    setExpandedItems(newExpandedItems);
-  };
 
   useEffect(() => {
     // Calculate heights for all research items
@@ -135,7 +124,7 @@ const MessageBubble = ({ message }: { message: Message }) => {
 
   return (
     <>
-      <div>
+      <div className="h-full">
         {/* User */}
         {message.role === "user" && (
           <div className="ml-auto max-w-full w-fit">
@@ -214,64 +203,15 @@ const MessageBubble = ({ message }: { message: Message }) => {
                     content={message.content || " "}
                   />
                   {message.researchItems?.map((item, index) => {
-                    const isExpanded = expandedItems.has(index);
+                    // const isExpanded = expandedItems.has(index);
                     return (
-                      <div key={index} className="relative mb-3">
-                        {/* First CheckCircle2 item */}
-                        <div
-                          className="flex flex-row justify-start items-center cursor-pointer w-fit select-none"
-                          onClick={() => toggleItem(index)}
-                        >
-                          {item.isCompleted ? (
-                            <CheckCircle2 className="w-4 h-4 text-neutral-400" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-neutral-400" />
-                          )}
-
-                          <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">
-                            {item.title}
-                          </span>
-                          <ChevronRight
-                            className={`w-3 h-3 text-neutral-400 ml-1 transition-transform duration-200 ${
-                              isExpanded ? "rotate-90" : "rotate-0"
-                            }`}
-                          />
-                        </div>
-
-                        {/* Content between items - collapsible with animation only on collapse */}
-                        <div
-                          className={`ml-5 overflow-hidden ${
-                            isExpanded
-                              ? "opacity-100 my-1 transition-all duration-200"
-                              : "opacity-0 my-0 transition-all duration-200"
-                          }`}
-                          style={{
-                            height: isExpanded
-                              ? `${itemHeights[index] || 0}px`
-                              : "0px",
-                          }}
-                        >
-                          <div
-                            ref={(el) => {
-                              contentRefs.current[index] = el;
-                            }}
-                            className="py-1"
-                          >
-                            <div className="text-[12px] text-neutral-500 dark:text-neutral-400 block font-medium mb-[-20px]">
-                              {/* {item.content} */}
-                              <MessageRenderer
-                                key={`${item.content}-${Date.now()}`}
-                                content={item.content || " "}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Vertical dashed line spanning the full height */}
-                        {index !== (message.researchItems?.length || 0) - 1 && (
-                          <div className="absolute left-[7px] top-5 bottom-[-14px] w-0 border-l-1 border-dashed border-gray-300 dark:border-[#4a4a4b]"></div>
-                        )}
-                      </div>
+                      <ResearchProcess
+                        key={index}
+                        item={item}
+                        index={index}
+                        itemHeights={itemHeights}
+                        contentRefs={contentRefs.current}
+                      />
                     );
                   })}
                 </div>
@@ -288,3 +228,82 @@ const MessageBubble = ({ message }: { message: Message }) => {
 const MemoizedRenderMessageOnScreen = memo(RenderMessageOnScreen);
 
 export default MemoizedRenderMessageOnScreen;
+
+const ResearchProcess = ({
+  item,
+  index,
+  itemHeights,
+  contentRefs,
+}: {
+  item: {
+    title: string;
+    content: string;
+    isCompleted?: boolean;
+  };
+  index: number;
+  itemHeights: { [key: number]: number };
+  contentRefs: { [key: number]: HTMLDivElement | null } | null;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const toggleItem = () => {
+    setIsExpanded(!isExpanded);
+  };
+  return (
+    <div key={index} className="relative mb-3">
+      {/* First CheckCircle2 item */}
+      <div
+        className="flex flex-row justify-start items-center cursor-pointer w-fit select-none"
+        onClick={toggleItem}
+      >
+        {item.isCompleted ? (
+          <CheckCircle2 className="w-4 h-4 text-neutral-400" />
+        ) : (
+          <Circle className="w-4 h-4 text-neutral-400" />
+        )}
+
+        <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">
+          {item.title}
+        </span>
+        <ChevronRight
+          className={`w-3 h-3 text-neutral-400 ml-1 transition-transform duration-200 ${
+            isExpanded ? "rotate-90" : "rotate-0"
+          }`}
+        />
+      </div>
+
+      {/* Content between items - collapsible with animation only on collapse */}
+      <div
+        className={`ml-5 overflow-hidden ${
+          isExpanded
+            ? "opacity-100 my-1 transition-all duration-200"
+            : "opacity-0 my-0 transition-all duration-200"
+        }`}
+        style={{
+          height: isExpanded ? `${itemHeights[index] || 0}px` : "0px",
+        }}
+      >
+        <div
+          ref={(el) => {
+            if (contentRefs) {
+              contentRefs[index] = el;
+            }
+          }}
+          className="py-1"
+        >
+          <div className="text-[12px] text-neutral-500 dark:text-neutral-400 block font-medium mb-[-20px]">
+            {/* {item.content} */}
+            <MessageRenderer
+              key={`${item.content}-${Date.now()}`}
+              content={item.content || " "}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Vertical dashed line spanning the full height */}
+      {index !== (Object.keys(itemHeights).length || 0) - 1 && (
+        <div className="absolute left-[7px] top-5 bottom-[-14px] w-0 border-l-1 border-dashed border-gray-300 dark:border-[#4a4a4b]"></div>
+      )}
+    </div>
+  );
+};

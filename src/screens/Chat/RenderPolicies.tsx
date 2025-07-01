@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useUserSearchInput } from "@/store/userSearchInput";
+import { Poppins } from "next/font/google";
+import Image from "next/image";
+import logo from "@/assets/image.png";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
 export default function RenderPolicies({
   policies,
@@ -41,27 +49,36 @@ export default function RenderPolicies({
   };
 
   return (
-    <div className="flex flex-col bg-[#1a1a1a] rounded-sm p-3 border border-neutral-800 font-lora">
-      <span className="text-neutral-400 text-xs font-lora">
-        Select the policies you are interested in
+    <div
+      className={`flex h-fit flex-col bg-transparent rounded-sm border border-neutral-800 ${poppins.className}`}
+    >
+      <span className="text-neutral-300 text-sm ">
+        Select any 5 policies in which you are interested
       </span>
       <div className="flex flex-row flex-wrap select-none mt-2">
         {policies.map(
           (policy: { name: string; description: string; logo: string }) => (
             <div
               key={policy.name}
-              className="flex items-center pr-1 pb-2 transition-colors cursor-pointer"
+              className="flex flex-row items-center mr-1 mb-2 transition-colors cursor-pointer"
               onClick={() => handlePolicyToggle(policy.name)}
             >
-              <span
-                className={`text-xs font-medium whitespace-nowrap rounded-xl p-1 px-2 ${
+              <div
+                className={`text-xs font-medium whitespace-nowrap p-1 px-1 pr-2 flex flex-row items-center gap-2 rounded-full ${
                   selectedPolicies.includes(policy.name)
                     ? "bg-white text-black"
-                    : "bg-neutral-800 text-white "
+                    : "bg-[#323234] text-white "
                 }`}
               >
-                {policy.name}
-              </span>
+                <Image
+                  src={logo}
+                  alt={policy.name}
+                  width={20}
+                  height={20}
+                  className="rounded-full"
+                />
+                <span className="text-xs">{policy.name}</span>
+              </div>
             </div>
           )
         )}
