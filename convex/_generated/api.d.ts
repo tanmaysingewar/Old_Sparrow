@@ -18,6 +18,7 @@ import type * as chats from "../chats.js";
 import type * as generate from "../generate.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
+import type * as prompts from "../prompts.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   generate: typeof generate;
   http: typeof http;
   messages: typeof messages;
+  prompts: typeof prompts;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
