@@ -30,7 +30,7 @@ Provide a personalized acknowledgment that:
 - Be encouraging about helping them find the right coverage
 - At the end of your response, add a JSON object with the collected information: 
 
-\`\`\`json
+\`\`\`personal_info
 {
 "age": "{user's age}",
 "city": "{user's city}",
@@ -56,14 +56,27 @@ Provide a personalized acknowledgment that:
 - Do not add any comments or explanations about the JSON object`;
 
 export const BOT_POLICIES_SELECTION_PROMPT = `
-\`\`\`json
-{
-"policies": [
+\`\`\`policies
+[
     {
         "name": "Policy 1",
-        "description": "Description 1"
+        "description": "Description 1",
         "logo": "https://example.com/logo.png"
     },
+    {
+        "name": "Policy 2",
+        "description": "Description 2",
+        "logo": "https://example.com/logo.png"
+    },
+    {
+        "name": "Policy 3",
+        "description": "Description 3",
+        "logo": "https://example.com/logo.png"
+    },
+    {
+        "name": "Policy 4",
+        "description": "Description 4",
+        "logo": "https://example.com/logo.png"
+    }
 ]
-}
 \`\`\` `;

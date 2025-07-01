@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
+import RenderPolicies from "./RenderPolicies";
 
 interface MessageRendererProps {
   content: string;
@@ -66,6 +67,12 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
               const match = /language-(\w+)/.exec(className || "");
               const codeText = String(children).replace(/\n$/, "");
               const language = match ? match[1] : null;
+
+              if (language === "policies") {
+                const json = JSON.parse(codeText);
+                console.log(json);
+                return <RenderPolicies policies={json} />;
+              }
 
               return match ? (
                 <div

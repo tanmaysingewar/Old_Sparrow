@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery } from "./_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  ActionCtx,
+} from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -85,33 +90,8 @@ export const getChat = internalQuery({
   },
 });
 
-// Helper internal mutation to update bot responses
-export const updateBotResponses = internalMutation({
-  args: {
-    messageId: v.id("messages"),
-    botResponses: v.array(
-      v.object({
-        response: v.string(),
-        researchItems: v.optional(
-          v.array(
-            v.object({
-              title: v.string(),
-              content: v.string(),
-              isCompleted: v.optional(v.boolean()),
-            })
-          )
-        ),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.patch(args.messageId, {
-      botResponses: args.botResponses,
-    });
-  },
-});
-
-export const addOnlyBotResponse = internalMutation({
+// Helper internal mutation to insert a bot response
+export const insertBotResponse = internalMutation({
   args: {
     messageId: v.id("messages"),
     response: v.string(),
@@ -141,30 +121,30 @@ export const addOnlyBotResponse = internalMutation({
   },
 });
 
-export const updateBotResponseAtIndex = internalMutation({
+// Helper internal mutation to insert a research item
+export const insertResearchItem = internalMutation({
   args: {
     messageId: v.id("messages"),
     responseIndex: v.number(),
-    response: v.string(),
-    researchItems: v.optional(
-      v.array(
-        v.object({
-          title: v.string(),
-          content: v.string(),
-          isCompleted: v.optional(v.boolean()),
-        })
-      )
-    ),
+    researchItemIndex: v.number(),
+    researchItem: v.object({
+      title: v.string(),
+      content: v.string(),
+      isCompleted: v.optional(v.boolean()),
+    }),
   },
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
+    // Update the research item at the given index
     if (!message) {
       return;
     }
     const botResponses = message.botResponses || [];
     if (botResponses.length > args.responseIndex) {
-      botResponses[args.responseIndex].response = args.response;
-      botResponses[args.responseIndex].researchItems = args.researchItems;
+      botResponses[args.responseIndex].researchItems = [
+        ...(botResponses[args.responseIndex].researchItems || []),
+        args.researchItem,
+      ];
     }
     return await ctx.db.patch(args.messageId, {
       botResponses: botResponses,
@@ -172,6 +152,7 @@ export const updateBotResponseAtIndex = internalMutation({
   },
 });
 
+// Helper internal mutation to complete a research item
 export const completeResearchItem = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -200,6 +181,88 @@ export const completeResearchItem = internalMutation({
   },
 });
 
+// Helper function to handle the initial bot response
+const handleInitialBotResponse = async (
+  ctx: ActionCtx,
+  openaiClient: OpenAI,
+  formattedPreviousMessages: ChatCompletionMessageParam[],
+  args: { chatId: string; userMessage: string }
+) => {
+  // get the user message
+  let userMessage = args.userMessage;
+
+  formattedPreviousMessages.push({
+    role: "user",
+    content: userMessage,
+  });
+
+  console.log(formattedPreviousMessages);
+
+  let initialBotResponse = "";
+
+  // TODO: Generate the initial bot response
+  const completion_initial = await openaiClient.chat.completions.create({
+    model: "deepseek/deepseek-r1-0528",
+    messages: [
+      {
+        role: "system",
+        content: INITIAL_BOT_PROMPT,
+      },
+      ...formattedPreviousMessages,
+    ],
+    stream: true,
+  });
+
+  for await (const chunk of completion_initial) {
+    const chunkContent = chunk.choices[0].delta.content || "";
+    // Accumulate the response
+    initialBotResponse += chunkContent;
+  }
+
+  // get and remove the json object from the initial bot response
+  const jsonObject = initialBotResponse.match(
+    /```personal_info\n{[\s\S]*?}\n```/g
+  );
+  if (jsonObject && jsonObject.length > 0) {
+    const jsonObjectString = jsonObject[0];
+    initialBotResponse = initialBotResponse.replace(jsonObjectString, "");
+  }
+
+  // Create initial message with preBotResponse bot responses
+  const messageId = await ctx.runMutation(internal.generate.insertMessage, {
+    chatId: args.chatId,
+    userMessage: userMessage,
+    botResponses: [
+      {
+        response: initialBotResponse,
+        researchItems: [],
+      },
+    ],
+  });
+
+  // if json is not there then break the flow
+  if (!jsonObject) {
+    return;
+  }
+
+  // Extract just the JSON content from the markdown code block
+  const jsonContent = jsonObject[0]
+    .replace(/```personal_info\n/, "")
+    .replace(/\n```$/, "");
+  const jsonObjectJson = JSON.parse(jsonContent);
+  console.log(jsonObjectJson);
+
+  // Send the policies selection prompt
+  await ctx.runMutation(internal.generate.insertBotResponse, {
+    messageId: messageId,
+    response: BOT_POLICIES_SELECTION_PROMPT,
+    researchItems: [],
+  });
+
+  return;
+};
+
+// Main action to generate the bot response
 export const generate = action({
   args: {
     chatId: v.optional(v.string()),
@@ -264,121 +327,131 @@ export const generate = action({
       formattedPreviousMessages.reverse();
     }
 
-    // get the user message
-    const userMessage = args.userMessage;
-
-    formattedPreviousMessages.push({
-      role: "user",
-      content: userMessage,
-    });
-
-    console.log(formattedPreviousMessages);
+    // ------------ Function to handle the initial bot response -------------------------
 
     const openaiClient = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
     });
 
-    let initialBotResponse = "";
+    let selectedPoliciesJsonObject;
 
-    // TODO: Generate the initial bot response
-    const completion_initial = await openaiClient.chat.completions.create({
-      model: "deepseek/deepseek-r1-0528",
-      messages: [
-        {
-          role: "system",
-          content: INITIAL_BOT_PROMPT,
-        },
-        ...formattedPreviousMessages,
-      ],
-      stream: true,
-    });
+    // check for the ```selected_policies``` in the user message
+    const selectedPolicies = args.userMessage.match(
+      /```selected_policies\s*\n\s*{[\s\S]*?}\s*\n\s*```/g
+    );
 
-    for await (const chunk of completion_initial) {
-      const chunkContent = chunk.choices[0].delta.content || "";
-      // Accumulate the response
-      initialBotResponse += chunkContent;
+    console.log("selectedPolicies", selectedPolicies);
+    if (selectedPolicies && selectedPolicies.length > 0) {
+      const selectedPoliciesJson = selectedPolicies[0];
+      const selectedPoliciesJsonString = selectedPoliciesJson
+        .replace(/```selected_policies\s*\n\s*/, "")
+        .replace(/\s*\n\s*```$/, "");
+      selectedPoliciesJsonObject = JSON.parse(selectedPoliciesJsonString);
+      console.log("selectedPoliciesJsonObject", selectedPoliciesJsonObject);
     }
 
-    // get and remove the json object from the initial bot response
-    const jsonObject = initialBotResponse.match(/```json\n{[\s\S]*?}\n```/g);
-    if (jsonObject && jsonObject.length > 0) {
-      const jsonObjectString = jsonObject[0];
-      initialBotResponse = initialBotResponse.replace(jsonObjectString, "");
-    }
-
-    // Create initial message with preBotResponse bot responses
-    const messageId = await ctx.runMutation(internal.generate.insertMessage, {
-      chatId: chatId,
-      userMessage: userMessage,
-      botResponses: [
-        {
-          response: initialBotResponse,
-          researchItems: [],
-        },
-      ],
-    });
-
-    // const completion = await openaiClient.chat.completions.create({
-    //   model: "google/gemini-2.5-flash",
-    //   messages: formattedPreviousMessages,
-    //   stream: true,
-    // });
-
-    // if json is not there then break the flow
-    if (!jsonObject) {
+    if (!selectedPoliciesJsonObject) {
+      await handleInitialBotResponse(
+        ctx,
+        openaiClient,
+        formattedPreviousMessages,
+        { chatId, userMessage: args.userMessage }
+      );
       return;
-    }
+    } else {
+      // TODO: Do the research
+      const messageId = await ctx.runMutation(internal.generate.insertMessage, {
+        chatId: chatId,
+        userMessage: args.userMessage,
+        botResponses: [
+          {
+            response: "I am working on it",
+            researchItems: [
+              {
+                title:
+                  "Customize the questions as per the info provided by user",
+                content: "Crafting the questions",
+                isCompleted: false,
+              },
+            ],
+          },
+        ],
+      });
 
-    // Extract just the JSON content from the markdown code block
-    const jsonContent = jsonObject[0]
-      .replace(/```json\n/, "")
-      .replace(/\n```$/, "");
-    const jsonObjectJson = JSON.parse(jsonContent);
-    console.log(jsonObjectJson);
+      // TODO: Customize the questions as per the info provided by user
 
-    // TODO: Do the research
+      //   Create the research items
+      await ctx.runMutation(internal.generate.completeResearchItem, {
+        messageId: messageId,
+        responseIndex: 0,
+        researchItemIndex: 0,
+      });
 
-    // TODO: Generate the research items
-    await ctx.runMutation(internal.generate.addOnlyBotResponse, {
-      messageId: messageId,
-      response: BOT_POLICIES_SELECTION_PROMPT,
-      researchItems: [],
-    });
+      // TODO: Parallel - Shoot the API call to LLM with the Policy and questions
 
-    // Add the first bot response with research items
-    await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
-      messageId: messageId,
-      responseIndex: 2,
-      response: "I am working on it",
-      researchItems: [
-        {
-          title: "Research current health insurance landscape and options",
-          content:
-            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-          isCompleted: true,
-        },
-        {
-          title: "Research the best health insurance plans for you",
-          content:
-            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-          isCompleted: true,
-        },
-        {
-          title: "Research the best health insurance plans for your family",
-          content:
-            "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+      // TODO: Update the research item
+      await ctx.runMutation(internal.generate.insertResearchItem, {
+        messageId: messageId,
+        responseIndex: 0,
+        researchItemIndex: 1,
+        researchItem: {
+          title: "Shoot the API call to LLM with the Policy and questions",
+          content: "Shooting the API call to LLM with the Policy and questions",
           isCompleted: false,
         },
-      ],
-    });
+      });
+
+      await ctx.runMutation(internal.generate.completeResearchItem, {
+        messageId: messageId,
+        responseIndex: 0,
+        researchItemIndex: 1,
+      });
+
+      // TODO: Update the research item
+
+      // TODO: Make the another call to LLM combine all the responses and give the final response
+
+      // TODO: Convert the final response to markdown then PDF
+
+      // TODO: Send the final response to the user
+    }
+
+    // ----------- Function to handle the initial bot response --------------------------
+
+    // Add the first bot response with research items
+    // await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
+    //   messageId: messageId,
+    //   responseIndex: 2,
+    //   response: "I am working on it",
+    //   researchItems: [
+    //     {
+    //       title: "Research current health insurance landscape and options",
+    //       content:
+    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+    //       isCompleted: true,
+    //     },
+    //     {
+    //       title: "Research the best health insurance plans for you",
+    //       content:
+    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+    //       isCompleted: true,
+    //     },
+    //     {
+    //       title: "Research the best health insurance plans for your family",
+    //       content:
+    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
+    //       isCompleted: false,
+    //     },
+    //   ],
+    // });
 
     // TODO: Complete the research item
-    await ctx.runMutation(internal.generate.completeResearchItem, {
-      messageId: messageId,
-      responseIndex: 1,
-      researchItemIndex: 2,
-    });
+    // await ctx.runMutation(internal.generate.completeResearchItem, {
+    //   messageId: messageId,
+    //   responseIndex: 1,
+    //   researchItemIndex: 2,
+    // });
 
     // let accumulatedResponse = "";
 

@@ -64,7 +64,7 @@ const TextInput = memo(
         <textarea
           ref={textareaRef}
           placeholder="How can I help you"
-          value={userSearchInput.text}
+          value={userSearchInput.text.replace(/```[\s\S]*?```/g, "")}
           className="w-full bg-transparent resize-none overflow-y-auto rounded-lg focus:outline-none caret-black dark:caret-white p-3 placeholder:text-neutral-400 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500"
           style={{
             fontSize: "16px",

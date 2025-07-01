@@ -156,7 +156,7 @@ export default function ChatPage() {
                       message={message}
                       index={index}
                       messages={messages}
-                      chatInitiated={false}
+                      chatInitiated={true}
                       setMessages={setMessages}
                     />
                   ))}

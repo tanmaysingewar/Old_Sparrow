@@ -31,48 +31,12 @@ interface RenderMessageProps {
 /**
  * Helper function to highlight special words in text
  */
-const highlightSpecialWords = (text: string) => {
-  // Split the text into words while preserving spaces and punctuation
-  return text.split(/(\s+)/).map((word, index) => {
-    if (word.includes("#")) {
-      return (
-        <span
-          key={index}
-          className="bg-blue-500/30 rounded px-1 py-1 text-sm font-semibold font-lora"
-        >
-          {word}
-        </span>
-      );
-    } else if (word.includes("@")) {
-      return (
-        <span
-          key={index}
-          className="bg-pink-500/30 rounded px-1 py-1 text-sm font-semibold font-lora"
-        >
-          {word}
-        </span>
-      );
-    } else if (word.includes("$")) {
-      return (
-        <span
-          key={index}
-          className="bg-orange-500/30 rounded px-1 py-1 text-sm font-semibold font-lora"
-        >
-          {word}
-        </span>
-      );
-    }
-    return word;
-  });
-};
 
 const LoadingIndicator = () => {
-  const loadingText = "Generating response...";
-
   return (
     <div className="flex items-center space-x-2">
       <Spinner className="w-5 h-5" />
-      <span className="loading-text-shine">{loadingText}</span>
+      <span className="loading-text-shine">Generating response...</span>
     </div>
   );
 };
@@ -176,10 +140,10 @@ const MessageBubble = ({ message }: { message: Message }) => {
         {message.role === "user" && (
           <div className="ml-auto max-w-full w-fit">
             <div
-              className={`rounded-3xl bg-gray-100  dark:text-white rounded-br-lg   font-lora p-2 px-4 dark:bg-[#42414369]`}
+              className={`rounded-3xl bg-gray-100 dark:text-white rounded-br-lg font-lora p-2 px-4 dark:bg-[#42414369]`}
             >
               <div className="font-lora">
-                <p>{highlightSpecialWords(message.content)}</p>
+                <p>{message.content.replace(/```[\s\S]*?```/g, "")}</p>
               </div>
             </div>
             {message.fileUrl && (
@@ -232,16 +196,6 @@ const MessageBubble = ({ message }: { message: Message }) => {
                 )}
               </div>
             )}
-            {/* <div className="flex flex-row justify-end items-end">
-                {CopyClicked ? (
-                  <Check className="w-4 h-4 m-2" />
-                ) : (
-                  <CopyIcon
-                    className="w-4 h-4 cursor-pointer m-2"
-                    onClick={handleCopyClick}
-                  />
-                )}
-              </div> */}
           </div>
         )}
 

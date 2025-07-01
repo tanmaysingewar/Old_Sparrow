@@ -117,6 +117,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
     setIsDisabled(false);
   }, [userSearchInput, setUserSearchInput, deleteFile]);
 
+  console.log("userSearchInput text", userSearchInput.text);
   const handleSendMessage = useCallback(async () => {
     // Don't send if text is empty or just whitespace
     if (!userSearchInput.text.trim()) {
