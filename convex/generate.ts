@@ -13,7 +13,9 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions.mj
 import {
   BOT_POLICIES_SELECTION_PROMPT,
   INITIAL_BOT_PROMPT,
+  POLICIES_WORDINGS_URLS,
   POLICY_QUESTIONS_PROMPT,
+  INDIVIDUAL_POLICY_QUESTIONS_PROMPT,
 } from "./prompts";
 
 // Helper internal mutation to create a new chat
@@ -206,7 +208,7 @@ const handleInitialBotResponse = async (
 
   // TODO: Generate the initial bot response
   const completion_initial = await openaiClient.chat.completions.create({
-    model: "anthropic/claude-4-sonnet-20250522",
+    model: "google/gemini-2.5-flash",
     messages: [
       {
         role: "system",
@@ -361,7 +363,13 @@ export const generate = action({
       return;
     } else {
       let personalInfoJsonObject:
-        | { city: string; age: string; prd: string; specific_questions: string }
+        | {
+            city: string;
+            age: string;
+            pre_existing_diseases: string;
+            specific_questions: string;
+            other_info: string;
+          }
         | undefined;
 
       formattedPreviousMessages.map((message) => {
@@ -378,9 +386,7 @@ export const generate = action({
         }
       });
 
-      console.log("personalInfoJsonObject", personalInfoJsonObject);
-
-      // TODO: Do the research
+      //   --------- Step 1: Customize the questions as per the info provided by user ---------
       const messageId = await ctx.runMutation(internal.generate.insertMessage, {
         chatId: chatId,
         userMessage: args.userMessage,
@@ -400,12 +406,18 @@ export const generate = action({
         ],
       });
 
-      // TODO: Customize the questions as per the info provided by user
+      console.log("personalInfoJsonObject", personalInfoJsonObject);
+      // Customize the questions as per the info provided by user
+      const USER_QUERY = `User Personal Info:
+        City: ${personalInfoJsonObject?.city}
+        Age: ${personalInfoJsonObject?.age}
+        Pre Existing Diseases: ${personalInfoJsonObject?.pre_existing_diseases}
+        Other Info: ${personalInfoJsonObject?.other_info}
+        Specific Questions: ${personalInfoJsonObject?.specific_questions}
 
-      const All_Questions =
-        POLICY_QUESTIONS_PROMPT +
-        "User personal question:" +
-        personalInfoJsonObject?.specific_questions;
+        Here are question that need to be answered:
+        ${POLICY_QUESTIONS_PROMPT}
+        `;
 
       //   Create the research items
       await ctx.runMutation(internal.generate.completeResearchItem, {
@@ -425,17 +437,36 @@ export const generate = action({
           isCompleted: false,
         },
       });
-      // TODO: Parallel - Shoot the API call to LLM with the Policy and questions
-      //   const completion = await openaiClient.chat.completions.create({
-      //     model: "deepseek/deepseek-r1-0528",
-      //     messages: [
-      //       { role: "system", content: "You are a helpful assistant" },
-      //       {
-      //         role: "user",
-      //         content: "I have selected the following policies: ",
-      //       },
-      //     ],
-      //   });
+
+      // map the POLICIES_WORDINGS_URLS with the selectedPoliciesJsonObject
+      // Extract the id values from the selected policies array and convert to strings
+      const selectedPolicyIds = selectedPoliciesJsonObject.policies.map(
+        (policy: { id: number }) => policy.id.toString()
+      );
+      console.log("selectedPolicyIds", selectedPolicyIds);
+
+      const policiesWordings = POLICIES_WORDINGS_URLS.filter((policy) => {
+        return selectedPolicyIds.includes(policy.id);
+      }).map((policy) => {
+        return {
+          policy_name: policy.name,
+          policy_description: policy.description,
+          policy_pdf_url: policy.pdf_url,
+          policy_logo: policy.logo,
+        };
+      });
+
+      console.log("policiesWordings", policiesWordings);
+
+      //   --------- Step 2: Shoot the API call to LLM with the Policy and questions ---------
+      // Call the Node.js action to process policies with LLM
+      const allCompletions = await ctx.runAction(
+        (internal as any).pdfActions.processPoliciesWithLLM,
+        {
+          policiesWordings: policiesWordings,
+          userQuery: USER_QUERY,
+        }
+      );
 
       await ctx.runMutation(internal.generate.completeResearchItem, {
         messageId: messageId,
@@ -444,6 +475,12 @@ export const generate = action({
       });
 
       // TODO: Make the another call to LLM combine all the responses and give the final response
+
+      await ctx.runMutation(internal.generate.insertBotResponse, {
+        messageId: messageId,
+        response: allCompletions[0].completion,
+        researchItems: [],
+      });
 
       // TODO: Convert the final response to markdown then PDF
 

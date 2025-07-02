@@ -18,6 +18,7 @@ import type * as chats from "../chats.js";
 import type * as generate from "../generate.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
+import type * as pdfActions from "../pdfActions.js";
 import type * as prompts from "../prompts.js";
 
 /**
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   generate: typeof generate;
   http: typeof http;
   messages: typeof messages;
+  pdfActions: typeof pdfActions;
   prompts: typeof prompts;
 }>;
 export declare const api: FilterApi<

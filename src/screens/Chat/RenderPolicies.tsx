@@ -32,7 +32,7 @@ export default function RenderPolicies({
           .filter((policy) => selectedPolicies.includes(policy.name))
           .map(
             (policy) => `{
-          "id": "${policy.id}",
+          "id": "${policy.id}"
         }`
           )
           .join(",\n")}
