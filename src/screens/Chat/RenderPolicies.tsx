@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useUserSearchInput } from "@/store/userSearchInput";
 import { Poppins } from "next/font/google";
 import Image from "next/image";
-import logo from "@/assets/image.png";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -12,7 +11,13 @@ const poppins = Poppins({
 export default function RenderPolicies({
   policies,
 }: {
-  policies: { name: string; description: string; logo: string }[];
+  policies: {
+    id: string;
+    name: string;
+    description: string;
+    logo: string;
+    pdf_url: string;
+  }[];
 }) {
   const [selectedPolicies, setSelectedPolicies] = useState<string[]>([]);
   const { userSearchInput, setUserSearchInput } = useUserSearchInput();
@@ -21,7 +26,17 @@ export default function RenderPolicies({
     if (selectedPolicies.length > 0) {
       let text = `\`\`\`selected_policies
       {
-      "policies_selection": true 
+      "policies_selection": true,
+      "policies": [
+        ${policies
+          .filter((policy) => selectedPolicies.includes(policy.name))
+          .map(
+            (policy) => `{
+          "id": "${policy.id}",
+        }`
+          )
+          .join(",\n")}
+        ]
       }
       \`\`\`I am interested in the following policies:`;
       selectedPolicies.forEach((policy) => {
@@ -41,46 +56,64 @@ export default function RenderPolicies({
   }, [selectedPolicies]);
 
   const handlePolicyToggle = (policyName: string) => {
-    setSelectedPolicies((prev) =>
-      prev.includes(policyName)
-        ? prev.filter((name) => name !== policyName)
-        : [...prev, policyName]
-    );
+    setSelectedPolicies((prev) => {
+      if (prev.includes(policyName)) {
+        // Always allow deselection
+        return prev.filter((name) => name !== policyName);
+      } else {
+        // Only allow selection if we haven't reached the limit of 5
+        if (prev.length < 5) {
+          return [...prev, policyName];
+        }
+        // If limit reached, don't add the new policy
+        return prev;
+      }
+    });
   };
 
   return (
     <div
-      className={`flex h-fit flex-col bg-transparent rounded-sm border border-neutral-800 ${poppins.className}`}
+      className={`flex h-fit flex-col bg-transparent rounded-sm ${poppins.className}`}
     >
-      <span className="text-neutral-300 text-sm ">
-        Select any 5 policies in which you are interested
+      <span className="text-neutral-700 text-sm dark:text-neutral-300">
+        Select up to 5 policies in which you are interested (
+        {selectedPolicies.length}/5 selected)
       </span>
       <div className="flex flex-row flex-wrap select-none mt-2">
         {policies.map(
-          (policy: { name: string; description: string; logo: string }) => (
-            <div
-              key={policy.name}
-              className="flex flex-row items-center mr-1 mb-2 transition-colors cursor-pointer"
-              onClick={() => handlePolicyToggle(policy.name)}
-            >
+          (policy: { name: string; description: string; logo: string }) => {
+            const isSelected = selectedPolicies.includes(policy.name);
+            const isDisabled = !isSelected && selectedPolicies.length >= 5;
+
+            return (
               <div
-                className={`text-xs font-medium whitespace-nowrap p-1 px-1 pr-2 flex flex-row items-center gap-2 rounded-full ${
-                  selectedPolicies.includes(policy.name)
-                    ? "bg-white text-black"
-                    : "bg-[#323234] text-white "
+                key={policy.name}
+                className={`flex flex-row items-center mr-1 mb-2 transition-colors ${
+                  isDisabled
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer"
                 }`}
+                onClick={() => !isDisabled && handlePolicyToggle(policy.name)}
               >
-                <Image
-                  src={logo}
-                  alt={policy.name}
-                  width={20}
-                  height={20}
-                  className="rounded-full"
-                />
-                <span className="text-xs">{policy.name}</span>
+                <div
+                  className={`text-xs font-medium whitespace-nowrap h-7 p-1 px-1 pr-2 flex flex-row items-center gap-2 rounded-full ${
+                    isSelected
+                      ? "dark:bg-white dark:text-black bg-[#262626] text-white"
+                      : "dark:bg-[#323234] dark:text-white bg-white text-black "
+                  }`}
+                >
+                  <Image
+                    src={policy.logo}
+                    alt={policy.name}
+                    width={20}
+                    height={20}
+                    className="rounded-full object-cover"
+                  />
+                  <span className="text-xs">{policy.name}</span>
+                </div>
               </div>
-            </div>
-          )
+            );
+          }
         )}
       </div>
     </div>

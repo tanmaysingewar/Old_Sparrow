@@ -129,7 +129,7 @@ const MessageBubble = ({ message }: { message: Message }) => {
         {message.role === "user" && (
           <div className="ml-auto max-w-full w-fit">
             <div
-              className={`rounded-3xl bg-gray-100 dark:text-white rounded-br-lg font-lora p-2 px-4 dark:bg-[#42414369]`}
+              className={`rounded-3xl bg-white dark:text-white rounded-br-lg font-lora p-2 px-4 dark:bg-[#42414369]`}
             >
               <div className="font-lora">
                 <p>{message.content.replace(/```[\s\S]*?```/g, "")}</p>

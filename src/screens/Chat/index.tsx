@@ -188,7 +188,7 @@ export default function ChatPage() {
               className={`mx-auto ${
                 searchParams.get("new")
                   ? "mt-4"
-                  : "fixed bottom-0 pb-2 bg-white dark:bg-[#272728]"
+                  : "fixed bottom-0 pb-2 bg-[#f8f8f7] dark:bg-[#272728]"
               }`}
             >
               <InputBox setMessages={setMessages} messages={messages} />

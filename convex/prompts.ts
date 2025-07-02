@@ -1,3 +1,86 @@
+export const POLICIES_WORDINGS_URLS = [
+  {
+    id: "1",
+    name: "HDFC Ergo Optima Restore",
+    description: "HDFC Ergo Optima Restore",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmG72qVhcCb9HP1rNRKh65DsF0uQWnSEoeLOUC",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy11M5sxopBvSbJD8RGKf6ywl3rioYtXc9pga0Q",
+  },
+  {
+    id: "2",
+    name: "Niva Bupa Reassure 2.0",
+    description: "Niva Bupa Reassure 2.0",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmXq0yer1vBDEpeP2QA4YZRnWdckyxwMO7mLfq",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1DtqwD4rTKgFB2n0IqsHQYPOJZVE3Dyo8mRGb",
+  },
+  {
+    id: "3",
+    name: "Tata AIG Medicare Premier",
+    description: "Tata AIG Medicare Premier",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmPyKXjocRZT3pcMkV0iJoElgGh72ADrQwuXSO",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1XG7efeVxONxK6EcLtg1yn2vTeYzDh0fZWuVd",
+  },
+  {
+    id: "4",
+    name: "ICICI Lombard Health AdvantEdge",
+    description: "ICICI Lombard Health AdvantEdge",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmbSbTRKZ6IP59nN3OEt7zgfjdcsxkTMrlQH1S",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy12Orkxc6Ql5CUKfdYaO3rvMLigtbVseJhyFnc",
+  },
+  {
+    id: "5",
+    name: "Aditya Birla Activ Fit",
+    description: "Aditya Birla Activ Fit",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmm3Ui7etWGD1NIxP78wrmdvpERg9ki4FOUajB",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1kYXViHDYEFnGKtsqBbT84dyQUpwlhZIaf5OW",
+  },
+  {
+    id: "6",
+    name: "Star Health Assure",
+    description: "Star Health Assure",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmASxUUKDHXaw8CJBSsbofVr4um7LcMN9R6zlW",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1IyTXWto7E3xFioHRJgcD6Sf9TWL5ZBydMPvt",
+  },
+  {
+    id: "7",
+    name: "HDFC Ergo Optima Secure",
+    description: "HDFC Ergo Optima Secure",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEm83o8ky9OSleBhfUVR5qgH64iXIb7PGy3ZujA",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1V3j5DpGbAr0HCQJTonc897lhFzEfDKtOkq2a",
+  },
+  {
+    id: "8",
+    name: "Bajaj Allianz Health Guard Gold",
+    description: "Bajaj Allianz Health Guard Gold",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmP5j1EWcRZT3pcMkV0iJoElgGh72ADrQwuXSO",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1W4CPRKuQlCLvbUwMY05hBKHOmaNRTiG1VXtF",
+  },
+  {
+    id: "9",
+    name: "Acko Platinum Health Plan",
+    description: "Acko Platinum Health Plan",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmtaXYqmsgQScLoJ4f3IDXYR6ZBuqayFEd89U2",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1W3gxE1uQlCLvbUwMY05hBKHOmaNRTiG1VXtF",
+  },
+  {
+    id: "10",
+    name: "Care Supreme",
+    description: "Care Supreme",
+    pdf_url:
+      "https://8t5mt0964i.ufs.sh/f/4fuSjzox1QEmrE4jogQvJURyx4aDwuKl2fLG3Fh5A7YE0On9",
+    logo: "https://kw32w2yc1a.ufs.sh/f/H2AnoDgEaRy1mowCA0ZPBiOfJg8UvKCMZQ3ypFRLS9oErbe5",
+  },
+];
+
 export const INITIAL_BOT_PROMPT = `# Old Sparrow - Health Insurance Advisor
 
 You are Old Sparrow, a wise and caring health Insurance Advisor with a warm, conversational personality. Your ONLY role is to collect required user information through natural conversation.
@@ -29,7 +112,7 @@ Provide a personalized acknowledgment that:
 - Do NOT list down any policies yourself - the system will provide the policy list
 - Be encouraging about helping them find the right coverage
 - At the end of your response, add a JSON object with the collected information: 
-
+- Make sure you return the exact same JSON object as the one below also include the personal_info title in the JSON object as given below:
 \`\`\`personal_info
 {
 "age": "{user's age}",
@@ -39,6 +122,7 @@ Provide a personalized acknowledgment that:
 "other_info": "{user's other information if provided}"
 }
 \`\`\` 
+
 ## Personality Traits:
 - Wise but approachable
 - Caring and empathetic
@@ -60,26 +144,15 @@ Provide a personalized acknowledgment that:
 export const BOT_POLICIES_SELECTION_PROMPT = `
 \`\`\`policies
 [
-    {
-        "name": "Policy 1",
-        "description": "Description 1",
-        "logo": "https://example.com/logo.png"
-    },
-    {
-        "name": "Policy 2",
-        "description": "Description 2",
-        "logo": "https://example.com/logo.png"
-    },
-    {
-        "name": "Policy 3",
-        "description": "Description 3",
-        "logo": "https://example.com/logo.png"
-    },
-    {
-        "name": "Policy 4",
-        "description": "Description 4",
-        "logo": "https://example.com/logo.png"
-    }
+${POLICIES_WORDINGS_URLS.map(
+  (policy) => `{
+    "id": "${policy.id}",
+    "name": "${policy.name}",
+    "description": "${policy.description}",
+    "pdf_url": "${policy.pdf_url}",
+    "logo": "${policy.logo}"
+}`
+).join(",\n")}
 ]
 \`\`\` `;
 

@@ -206,7 +206,7 @@ const handleInitialBotResponse = async (
 
   // TODO: Generate the initial bot response
   const completion_initial = await openaiClient.chat.completions.create({
-    model: "deepseek/deepseek-r1-0528",
+    model: "anthropic/claude-4-sonnet-20250522",
     messages: [
       {
         role: "system",
@@ -426,16 +426,16 @@ export const generate = action({
         },
       });
       // TODO: Parallel - Shoot the API call to LLM with the Policy and questions
-      const completion = await openaiClient.chat.completions.create({
-        model: "deepseek/deepseek-r1-0528",
-        messages: [
-          { role: "system", content: "You are a helpful assistant" },
-          {
-            role: "user",
-            content: "I have selected the following policies: ",
-          },
-        ],
-      });
+      //   const completion = await openaiClient.chat.completions.create({
+      //     model: "deepseek/deepseek-r1-0528",
+      //     messages: [
+      //       { role: "system", content: "You are a helpful assistant" },
+      //       {
+      //         role: "user",
+      //         content: "I have selected the following policies: ",
+      //       },
+      //     ],
+      //   });
 
       await ctx.runMutation(internal.generate.completeResearchItem, {
         messageId: messageId,

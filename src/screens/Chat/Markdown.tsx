@@ -5,6 +5,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
 import RenderPolicies from "./RenderPolicies";
+import { getLocalMessages } from "@/store/saveMessages";
+import { useSearchParams } from "next/navigation";
 
 interface MessageRendererProps {
   content: string;
@@ -56,6 +58,18 @@ const CopyButton = ({ text }: { text: string }) => {
 };
 
 const MessageRenderer = ({ content }: MessageRendererProps) => {
+  const searchParams = useSearchParams();
+  const chatId = searchParams.get("chatId");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [messages, setMessages] = useState<any[]>([]);
+  useEffect(() => {
+    if (chatId) {
+      const messages = getLocalMessages(chatId);
+      setMessages(messages);
+    }
+  }, [chatId]);
+  const lastMessage = messages[messages.length - 1];
+  const isLastMessage = content === lastMessage?.content;
   return (
     <div className={`md:max-w-[710px] max-w-svw`}>
       <section>
@@ -69,9 +83,11 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
               const language = match ? match[1] : null;
 
               if (language === "policies") {
-                const json = JSON.parse(codeText);
-                console.log(json);
-                return <RenderPolicies policies={json} />;
+                if (isLastMessage) {
+                  const json = JSON.parse(codeText);
+                  return <RenderPolicies policies={json} />;
+                }
+                return;
               }
 
               if (language === "personal_info") {
