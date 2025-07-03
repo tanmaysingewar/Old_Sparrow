@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import OpenAI from "openai";
 import { comparisonReport, POLICY_COMPARISON_PROMPT } from "./prompts";
+const { marked } = require("marked");
 
 export const encodePDFToBase64 = async (pdfUrl: string): Promise<string> => {
   try {
@@ -86,8 +87,6 @@ export const convertToHTML = action({
     comparisonResponse: v.string(),
   },
   handler: async (ctx, args) => {
-    const { marked } = require("marked");
-
     try {
       // Convert markdown to HTML
       const htmlContent = marked(args.comparisonResponse);
