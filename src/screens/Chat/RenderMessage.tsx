@@ -4,7 +4,7 @@ import MessageRenderer from "@/screens/Chat/Markdown";
 import Spinner from "@/components/Spinner";
 import PDFIcon from "@/components/InputArea/assets/pdf";
 import DOCIcon from "@/components/InputArea/assets/doc";
-import { CheckCircle2, ChevronRight, Circle } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, Loader2 } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -256,9 +256,9 @@ const ResearchProcess = ({
         onClick={toggleItem}
       >
         {item.isCompleted ? (
-          <CheckCircle2 className="w-4 h-4 text-neutral-400" />
+          <CheckCircle2 className="w-4 h-4 text-green-700" />
         ) : (
-          <Circle className="w-4 h-4 text-neutral-400" />
+          <Loader2 className="w-4 h-4 text-neutral-400 animate-spin" />
         )}
 
         <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">

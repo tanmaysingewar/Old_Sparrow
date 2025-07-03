@@ -282,7 +282,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
                       onChange={handleFileChange}
                       className="hidden"
                       disabled={isDisabled}
-                      accept="image/*, application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/plain"
+                      accept="application/pdf"
                     />
                     <Paperclip className="w-[18px] h-[18px]" />
                   </label>

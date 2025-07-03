@@ -1,4 +1,4 @@
-import { Check, CopyIcon } from "lucide-react";
+import { Check, CopyIcon, Loader2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -7,6 +7,20 @@ import remarkGfm from "remark-gfm";
 import RenderPolicies from "./RenderPolicies";
 import { getLocalMessages } from "@/store/saveMessages";
 import { useSearchParams } from "next/navigation";
+import { api } from "../../../convex/_generated/api";
+import { useQuery } from "convex/react";
+import { Id } from "../../../convex/_generated/dataModel";
+import PDFIcon from "@/components/InputArea/assets/pdf";
+import ReportIconPNG from "@/assets/report.png";
+
+import { Poppins } from "next/font/google";
+import Image from "next/image";
+import { useDisplaySetting } from "@/store/displaySetting";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
 interface MessageRendererProps {
   content: string;
@@ -62,6 +76,8 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
   const chatId = searchParams.get("chatId");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [messages, setMessages] = useState<any[]>([]);
+  const [fileID, setFileID] = useState("");
+
   useEffect(() => {
     if (chatId) {
       const messages = getLocalMessages(chatId);
@@ -70,6 +86,35 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
   }, [chatId]);
   const lastMessage = messages[messages.length - 1];
   const isLastMessage = content === lastMessage?.content;
+
+  const getFileUrl = useQuery(
+    api.messages.getFileUrl,
+    fileID
+      ? {
+          storageId: fileID as Id<"_storage">,
+        }
+      : "skip"
+  );
+
+  useEffect(() => {
+    // Look for final_response_file code blocks and extract the file_id
+    const codeBlockRegex = /```\s*final_response_file\s*\n([\s\S]*?)```/;
+    const match = codeBlockRegex.exec(content);
+    if (match) {
+      try {
+        const jsonContent = JSON.parse(match[1].trim());
+        if (jsonContent.file_id) {
+          setFileID(jsonContent.file_id);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to parse file_id from final_response_file block:",
+          error
+        );
+      }
+    }
+  }, [content, chatId]);
+
   return (
     <div className={`md:max-w-[710px] max-w-svw`}>
       <section>
@@ -92,6 +137,23 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
 
               if (language === "personal_info") {
                 return;
+              }
+
+              if (language === "final_response_file") {
+                return (
+                  <div className="mb-2 w-full">
+                    <div
+                      className={`group flex items-start rounded-xl px-3 py-2 bg-[#f3f3f3] dark:bg-[#424143] w-fit cursor-pointer`}
+                      onClick={() => {
+                        if (getFileUrl) {
+                          window.open(getFileUrl, "_blank");
+                        }
+                      }}
+                    >
+                      <LoadFile />
+                    </div>
+                  </div>
+                );
               }
 
               return match ? (
@@ -207,3 +269,37 @@ const MessageRenderer = ({ content }: MessageRendererProps) => {
 };
 
 export default MessageRenderer;
+
+export const LoadFile = () => {
+  return (
+    <div className="flex items-center space-x-2 ">
+      <ReportIcon />
+      <div className="flex flex-col">
+        <span
+          className={`text-sm text-black dark:text-white ${poppins.className}`}
+        >
+          Final Comparison Report
+        </span>
+        <span
+          className={`text-xs text-neutral-500 dark:text-neutral-400 ${poppins.className}`}
+        >
+          Report
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export const ReportIcon = () => {
+  return (
+    <div>
+      <Image
+        src={ReportIconPNG}
+        height={30}
+        width={30}
+        alt=""
+        className="rounded-full"
+      />
+    </div>
+  );
+};

@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import OpenAI from "openai";
-import { INDIVIDUAL_POLICY_QUESTIONS_PROMPT } from "./prompts";
+import { comparisonReport, POLICY_COMPARISON_PROMPT } from "./prompts";
 
 export const encodePDFToBase64 = async (pdfUrl: string): Promise<string> => {
   try {
@@ -43,45 +43,69 @@ export const processPoliciesWithLLM = action({
     });
 
     //   --------- Shoot the API call to LLM with the Policy and questions ---------
-    let allCompletions: any[] = [];
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let content: any[] = [
+      {
+        type: "text",
+        text: args.userQuery,
+      },
+    ];
     await Promise.all(
       args.policiesWordings.map(async (policy) => {
         const base64PDF = await encodePDFToBase64(policy.policy_pdf_url);
-
-        const completion = await openaiClient.chat.completions.create({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content: INDIVIDUAL_POLICY_QUESTIONS_PROMPT,
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: args.userQuery,
-                },
-                {
-                  type: "file",
-                  file: {
-                    filename: policy.policy_name + ".pdf",
-                    file_data: base64PDF,
-                  },
-                },
-              ],
-            },
-          ],
-        });
-
-        allCompletions.push({
-          policy_name: policy.policy_name,
-          completion: completion.choices[0].message.content,
+        content.push({
+          type: "file",
+          file: {
+            filename: policy.policy_name + ".pdf",
+            file_data: base64PDF,
+          },
         });
       })
     );
 
-    return allCompletions;
+    const completion = await openaiClient.chat.completions.create({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "system",
+          content: POLICY_COMPARISON_PROMPT,
+        },
+        {
+          role: "user",
+          content: content,
+        },
+      ],
+    });
+
+    return completion.choices[0].message.content;
+  },
+});
+
+export const convertToHTML = action({
+  args: {
+    comparisonResponse: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { marked } = require("marked");
+
+    try {
+      // Convert markdown to HTML
+      const htmlContent = marked(args.comparisonResponse);
+
+      // Create a print-ready HTML document
+      const printReadyHtml = comparisonReport(htmlContent);
+
+      // Store the HTML file
+      const htmlFileId = await ctx.storage.store(
+        new Blob([printReadyHtml], {
+          type: "text/html",
+        })
+      );
+
+      return htmlFileId;
+    } catch (error) {
+      console.error("Error converting markdown to HTML:", error);
+      throw error;
+    }
   },
 });

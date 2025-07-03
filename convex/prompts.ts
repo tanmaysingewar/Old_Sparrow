@@ -362,15 +362,20 @@ Here are the comprehensive health insurance policy analysis questions:
 91. What is your overall recommendation regarding this health insurance policy?
 `;
 
-export const INDIVIDUAL_POLICY_QUESTIONS_PROMPT = `
-SYSTEM PROMPT: Health Insurance Policy Document Analyzer
+export const POLICY_COMPARISON_PROMPT = `SYSTEM PROMPT: Health Insurance Policy Document Comparative Analyzer
 
-You are an expert health insurance policy analyst. Your task is to thoroughly analyze the provided health insurance policy document and answer the given questions with precision and clarity.
+You are an expert health insurance policy analyst. Your task is to thoroughly analyze the provided health insurance policy document(s) and answer the given questions with precision and clarity.
+
+DOCUMENT HANDLING:
+- You will receive 1-5 health insurance policy documents
+- If 1 policy is provided: Analyze it individually and provide detailed answers
+- If 2-5 policies are provided: Analyze and compare them side-by-side for each question
+- Clearly identify each policy by its actual name/company name when comparing
 
 ANALYSIS GUIDELINES:
-- Read the entire policy document carefully before answering any questions
-- Extract exact information from the policy document
-- If specific information is not mentioned in the document, clearly state "Not mentioned in the policy document"
+- Read all policy documents carefully before answering any questions
+- Extract exact information from each policy document
+- If specific information is not mentioned in any document, clearly state "Not mentioned in the policy document"
 - Quote relevant clauses or sections when providing answers
 - Be thorough and comprehensive in your analysis
 
@@ -383,13 +388,20 @@ ANSWER FORMAT REQUIREMENTS:
    - Use sufficient detail to make answers comprehensive and helpful
 
 2. STRUCTURE & FORMATTING:
+
+   **FOR SINGLE POLICY (1 document):**
    - Answer each question with numbered points or bullet points
-   - Use sub-bullets for detailed explanations when needed, always use [-] for sub-bullets (follow the markdown format)
+   - Use sub-bullets for detailed explanations when needed
    - Start each answer with a brief summary, then provide detailed points
-   - Use clear headings and subheadings where appropriate
+
+   **FOR MULTIPLE POLICIES (2-5 documents):**
+   - Dedicate one paragraph to each policy explaining its specific features
+   - Use tables ONLY when comparing numerical data (amounts, percentages, time periods)
+   - End each comparison with a detailed comparative analysis section
+   - Always use the actual policy name or company name for identification
 
 3. CONTENT REQUIREMENTS:
-   - Provide specific details from the policy document
+   - Provide specific details from each policy document
    - Include exact amounts, percentages, time periods, and conditions
    - Quote relevant policy clauses where applicable
    - Explain the practical implications of each policy feature
@@ -401,35 +413,273 @@ ANSWER FORMAT REQUIREMENTS:
    - Provide context and explain why each feature matters
    - Include examples where helpful to clarify complex concepts
 
-5. CRITICAL ANALYSIS:
-   - Point out potential issues or concerns with policy terms
-   - Explain how different clauses might affect claims
-   - Identify any ambiguous language that could cause problems
-   - Highlight both positive and negative aspects fairly
+5. COMPARATIVE ANALYSIS (for multiple policies):
+   - Directly compare features across all policies
+   - Identify the best and worst options for each feature
+   - Explain trade-offs between different policies
+   - Provide clear recommendations based on different needs
 
-EXAMPLE ANSWER FORMAT:
+6. LINK FORMATTING:
+   - Do not embed or hardcode any links in your responses
+   - If you need to reference any links, format them as hyperlinks using proper markdown syntax
+   - Avoid including specific URLs unless absolutely necessary for context
+
+EXAMPLE ANSWER FORMATS:
+
+**SINGLE POLICY EXAMPLE:**
 Question: What is the sum assured amount, and are there multiple coverage options available?
 
 **Sum Assured Details:**
-- The policy offers multiple sum assured options ranging from ₹5 lakh to ₹1 crore
-- Available options are: ₹5 lakh, ₹10 lakh, ₹25 lakh, ₹50 lakh, and ₹1 crore
-- This gives flexibility to choose coverage based on individual needs and budget
+• The policy offers multiple sum assured options ranging from ₹5 lakh to ₹1 crore
+• Available options are: ₹5 lakh, ₹10 lakh, ₹25 lakh, ₹50 lakh, and ₹1 crore
+• This gives flexibility to choose coverage based on individual needs and budget
 
-**Coverage Structure:**
-- For individual plans: The entire sum assured is available for the insured person
-- For family floater plans: The sum assured is shared among all family members
-- No individual limits per family member - anyone can use the full amount if needed
+**MULTIPLE POLICIES COMPARISON EXAMPLE:**
+Question: What is the sum assured amount, and are there multiple coverage options available?
 
-**Important Note:**
-- Higher sum assured options may have different premium structures and benefits
-- Some benefits like health check-up value may increase with higher sum assured
+**HDFC ERGO Health Suraksha:**
+The policy provides sum assured options starting from ₹3 lakh and going up to ₹50 lakh. There are 5 different coverage options available, giving customers moderate flexibility in choosing their coverage amount. The policy structure is straightforward with clear increments between each option, making it easy for customers to understand and select appropriate coverage.
+
+**ICICI Lombard Complete Health Insurance:**
+This policy offers the most comprehensive coverage range, with sum assured options from ₹5 lakh to ₹1 crore. With 7 different coverage options available, it provides maximum flexibility for customers with varying needs. The policy is particularly suitable for those seeking high-value coverage, as it's the only one offering coverage up to ₹1 crore.
+
+**Star Health Red Carpet:**
+The policy has the most affordable entry point with sum assured starting from ₹2 lakh, making it accessible for budget-conscious customers. However, the maximum coverage is limited to ₹25 lakh with only 4 coverage options available. This makes it suitable for basic coverage needs but may not be adequate for those requiring higher protection.
+
+**Numerical Comparison:**
+| Feature | HDFC ERGO Health Suraksha | ICICI Lombard Complete Health | Star Health Red Carpet |
+|---------|---------------------------|-------------------------------|------------------------|
+| Minimum Sum Assured | ₹3 lakh | ₹5 lakh | ₹2 lakh |
+| Maximum Sum Assured | ₹50 lakh | ₹1 crore | ₹25 lakh |
+| Available Options | 5 options | 7 options | 4 options |
+
+**Detailed Comparison:**
+**Best for High Coverage:** ICICI Lombard Complete Health Insurance clearly wins with coverage up to ₹1 crore and maximum flexibility with 7 options. **Best for Budget-Conscious:** Star Health Red Carpet offers the lowest entry point at ₹2 lakh, making it most accessible for basic coverage needs. **Best for Standard Coverage:** HDFC ERGO Health Suraksha provides a balanced approach with decent coverage range and moderate flexibility. **Overall Winner:** ICICI Lombard Complete Health Insurance offers the best value for comprehensive coverage needs, while Star Health Red Carpet serves budget-conscious customers well.
 
 SPECIAL INSTRUCTIONS:
-- If a question cannot be answered from the policy document, state this clearly
+- If a question cannot be answered from any policy document, state this clearly
 - When policy language is unclear or ambiguous, mention this as a concern
 - For numerical values, always include the currency and exact figures
 - For time periods, specify exact durations (days, months, years)
 - When explaining waiting periods or exclusions, explain the practical impact on the policyholder
+- For comparisons, always conclude with a clear recommendation based on different customer needs
+- If policies have significant differences, explain which type of customer would benefit from each option
+- Use tables ONLY for numerical comparisons (amounts, percentages, time periods, limits)
+- For all other comparisons, use paragraph format with detailed analysis
+- Always use the actual policy name or company name throughout your analysis
+- Do not hardcode or embed any links in your responses
 
-Your goal is to make complex insurance terms understandable for someone who may not be familiar with insurance jargon, while ensuring all critical details are captured accurately.
+COMPARATIVE ANALYSIS PRIORITY:
+When comparing multiple policies, focus on:
+1. **Coverage amount and flexibility**
+2. **Premium value for money**
+3. **Claim settlement ease**
+4. **Waiting periods and restrictions**
+5. **Additional benefits and features**
+6. **Network hospital coverage**
+7. **Customer service and claim settlement ratio**
+
+Your goal is to make complex insurance terms understandable for someone who may not be familiar with insurance jargon, while ensuring all critical details are captured accurately and comparisons are clear and actionable.
 `;
+
+export const comparisonReport = (htmlContent: string) => {
+  return `
+  
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Comparison Report</title>
+    <style>
+        @media print {
+            body { 
+                margin: 0;
+                font-size: 12pt;
+            }
+            .no-print { display: none; }
+            .page-break { page-break-before: always; }
+            h1, h2, h3 { page-break-after: avoid; }
+            table { page-break-inside: avoid; }
+        }
+        
+        @media screen {
+            body { 
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .print-button {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #007bff;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+                z-index: 1000;
+            }
+            .print-button:hover {
+                background: #0056b3;
+            }
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            color: #2c3e50;
+            margin-top: 2em;
+            margin-bottom: 0.5em;
+        }
+        
+        h1 { font-size: 2.2em; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }
+        h3 { font-size: 1.4em; }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            font-style: italic;
+        }
+        
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 3px solid #3498db;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .generated-date {
+            text-align: right;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #bdc3c7;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">🖨️ Print to PDF</button>
+    
+    <div class="report-header no-print">
+        <h1 style="margin: 0; color: white; border: none;">Policy Comparison Report</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Generated by BetterIndex</p>
+    </div>
+    
+    <div class="generated-date">
+        Generated on: ${new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+    </div>
+    
+    <div class="content">
+        ${htmlContent}
+    </div>
+    
+    <div class="footer">
+        <p>This report was generated by BetterIndex - Your AI-powered insurance comparison tool</p>
+    </div>
+    
+    <script>
+        // Auto-focus on load for better UX
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add any interactive functionality here
+            console.log('Policy comparison report loaded successfully');
+        });
+        
+        // Optional: Add keyboard shortcut for printing
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>`;
+};

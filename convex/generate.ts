@@ -14,8 +14,8 @@ import {
   BOT_POLICIES_SELECTION_PROMPT,
   INITIAL_BOT_PROMPT,
   POLICIES_WORDINGS_URLS,
+  POLICY_COMPARISON_PROMPT,
   POLICY_QUESTIONS_PROMPT,
-  INDIVIDUAL_POLICY_QUESTIONS_PROMPT,
 } from "./prompts";
 
 // Helper internal mutation to create a new chat
@@ -208,7 +208,7 @@ const handleInitialBotResponse = async (
 
   // TODO: Generate the initial bot response
   const completion_initial = await openaiClient.chat.completions.create({
-    model: "google/gemini-2.5-flash",
+    model: "anthropic/claude-sonnet-4",
     messages: [
       {
         role: "system",
@@ -460,7 +460,7 @@ export const generate = action({
 
       //   --------- Step 2: Shoot the API call to LLM with the Policy and questions ---------
       // Call the Node.js action to process policies with LLM
-      const allCompletions = await ctx.runAction(
+      const comparisonResponse = await ctx.runAction(
         (internal as any).pdfActions.processPoliciesWithLLM,
         {
           policiesWordings: policiesWordings,
@@ -474,80 +474,45 @@ export const generate = action({
         researchItemIndex: 1,
       });
 
-      // TODO: Make the another call to LLM combine all the responses and give the final response
-
-      await ctx.runMutation(internal.generate.insertBotResponse, {
-        messageId: messageId,
-        response: allCompletions[0].completion,
-        researchItems: [],
-      });
-
       // TODO: Convert the final response to markdown then PDF
 
+      await ctx.runMutation(internal.generate.insertResearchItem, {
+        messageId: messageId,
+        responseIndex: 0,
+        researchItemIndex: 2,
+        researchItem: {
+          title: "Convert the final response to markdown then PDF",
+          content: "Converting the final response to markdown then PDF",
+          isCompleted: false,
+        },
+      });
+
+      //   --------- Step 3: Convert the final response to markdown then PDF ---------
+      const finalResponseFileId = await ctx.runAction(
+        (internal as any).pdfActions.convertToHTML,
+        {
+          comparisonResponse: comparisonResponse,
+        }
+      );
+
+      await ctx.runMutation(internal.generate.completeResearchItem, {
+        messageId: messageId,
+        responseIndex: 0,
+        researchItemIndex: 2,
+      });
+
       // TODO: Send the final response to the user
+      await ctx.runMutation(internal.generate.insertBotResponse, {
+        messageId: messageId,
+        response: `Here is the final response: 
+\`\`\` final_response_file
+{
+  "file_id": "${finalResponseFileId}"
+}
+\`\`\`
+`,
+        researchItems: [],
+      });
     }
-
-    // ----------- Function to handle the initial bot response --------------------------
-
-    // Add the first bot response with research items
-    // await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
-    //   messageId: messageId,
-    //   responseIndex: 2,
-    //   response: "I am working on it",
-    //   researchItems: [
-    //     {
-    //       title: "Research current health insurance landscape and options",
-    //       content:
-    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-    //       isCompleted: true,
-    //     },
-    //     {
-    //       title: "Research the best health insurance plans for you",
-    //       content:
-    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-    //       isCompleted: true,
-    //     },
-    //     {
-    //       title: "Research the best health insurance plans for your family",
-    //       content:
-    //         "Navigating the world of health insurance can be complex, but understanding your options is crucial for securing the best coverage for your needs. This comprehensive guide aims to demystify health insurance, providing you with the knowledge and strategies to make informed decisions. We will cover various types of health insurance plans, key factors to consider when choosing a plan, and effective comparison strategies.",
-    //       isCompleted: false,
-    //     },
-    //   ],
-    // });
-
-    // TODO: Complete the research item
-    // await ctx.runMutation(internal.generate.completeResearchItem, {
-    //   messageId: messageId,
-    //   responseIndex: 1,
-    //   researchItemIndex: 2,
-    // });
-
-    // let accumulatedResponse = "";
-
-    // // TODO: Add the Final Bot Response
-    // let isFirstChunk = true;
-
-    // for await (const chunk of completion) {
-    //   const chunkContent = chunk.choices[0].delta.content || "";
-    //   // Accumulate the response
-    //   accumulatedResponse += chunkContent;
-
-    //   if (isFirstChunk) {
-    //     // Add the second bot response for the streaming content
-    //     await ctx.runMutation(internal.generate.addOnlyBotResponse, {
-    //       messageId: messageId,
-    //       response: accumulatedResponse,
-    //     });
-    //     isFirstChunk = false;
-    //   } else {
-    //     // Update the second bot response with the accumulated content
-    //     await ctx.runMutation(internal.generate.updateBotResponseAtIndex, {
-    //       messageId: messageId,
-    //       responseIndex: 1,
-    //       response: accumulatedResponse,
-    //     });
-    //   }
-    // }
   },
 });
