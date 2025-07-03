@@ -4,7 +4,7 @@ import MessageRenderer from "@/screens/Chat/Markdown";
 import Spinner from "@/components/Spinner";
 import PDFIcon from "@/components/InputArea/assets/pdf";
 import DOCIcon from "@/components/InputArea/assets/doc";
-import { CheckCircle2, ChevronRight, Circle, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";

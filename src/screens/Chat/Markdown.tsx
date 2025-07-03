@@ -1,4 +1,4 @@
-import { Check, CopyIcon, Loader2 } from "lucide-react";
+import { Check, CopyIcon } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -10,12 +10,10 @@ import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { useQuery } from "convex/react";
 import { Id } from "../../../convex/_generated/dataModel";
-import PDFIcon from "@/components/InputArea/assets/pdf";
 import ReportIconPNG from "@/assets/report.png";
 
 import { Poppins } from "next/font/google";
 import Image from "next/image";
-import { useDisplaySetting } from "@/store/displaySetting";
 
 const poppins = Poppins({
   subsets: ["latin"],

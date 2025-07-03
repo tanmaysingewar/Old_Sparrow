@@ -16,7 +16,6 @@ import { api } from "../../../convex/_generated/api";
 import { useUserStore } from "@/store/userStore";
 import { saveLocalMessages, getLocalMessages } from "@/store/saveMessages";
 import { Sidebar } from "lucide-react";
-import { useDisplaySetting } from "@/store/displaySetting";
 
 const pacifico = Pacifico({
   subsets: ["latin"],
