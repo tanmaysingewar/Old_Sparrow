@@ -10,10 +10,8 @@ import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { useQuery } from "convex/react";
 import { Id } from "../../../convex/_generated/dataModel";
-import ReportIconPNG from "@/assets/report.png";
 
 import { Poppins } from "next/font/google";
-import Image from "next/image";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -291,13 +289,104 @@ export const LoadFile = () => {
 export const ReportIcon = () => {
   return (
     <div>
-      <Image
-        src={ReportIconPNG}
-        height={30}
-        width={30}
-        alt=""
-        className="rounded-full"
-      />
+      <svg
+        version="1.1"
+        id="Layer_1"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlnsXlink="http://www.w3.org/1999/xlink"
+        x="0px"
+        y="0px"
+        width="46"
+        height="46"
+        viewBox="0 0 960 960"
+        xmlSpace="preserve"
+      >
+        <g>
+          <g>
+            <path
+              fill="#33B98C"
+              d="M621.9,813.4H146.3V146.6h475.5c16.3,0,29.5,13.2,29.5,29.5v607.8C651.3,800.2,638.1,813.4,621.9,813.4z"
+            />
+            <path
+              fill="#F2F2F2"
+              d="M558.8,457.9H310.2c-8.8,0-16-7.2-16-16v-146c0-8.8,7.2-16,16-16h248.6c8.8,0,16,7.2,16,16v146
+			C574.8,450.7,567.7,457.9,558.8,457.9z"
+            />
+            <path
+              fill="#FBB03B"
+              d="M674.5,305h-23.2V194.4h23.2c7.9,0,14.4,6.4,14.4,14.4v81.8C688.9,298.5,682.5,305,674.5,305z"
+            />
+            <path
+              fill="#F7931E"
+              d="M674.5,429.1h-23.2V318.6h23.2c7.9,0,14.4,6.4,14.4,14.4v81.8C688.9,422.7,682.5,429.1,674.5,429.1z"
+            />
+            <path
+              fill="#F15A24"
+              d="M674.5,555.2h-23.2V444.6h23.2c7.9,0,14.4,6.4,14.4,14.4v81.8C688.9,548.8,682.5,555.2,674.5,555.2z"
+            />
+            <path
+              fill="#C1272D"
+              d="M674.5,683.1h-23.2V572.5h23.2c7.9,0,14.4,6.4,14.4,14.4v81.8C688.9,676.7,682.5,683.1,674.5,683.1z"
+            />
+            <rect
+              x="146.3"
+              y="146.6"
+              fill="#135468"
+              width="69.3"
+              height="666.7"
+            />
+            <rect
+              x="343.6"
+              y="323.5"
+              fill="#135468"
+              width="183.3"
+              height="15.3"
+            />
+            <rect
+              x="343.6"
+              y="358.6"
+              fill="#135468"
+              width="183.3"
+              height="15.3"
+            />
+            <rect
+              x="343.6"
+              y="393.6"
+              fill="#135468"
+              width="183.3"
+              height="15.3"
+            />
+          </g>
+          <g>
+            <ellipse
+              transform="matrix(1 -3.676774e-03 3.676774e-03 1 -2.4737 2.4287)"
+              fill="#FFFFFF"
+              cx="659.3"
+              cy="674"
+              rx="110.2"
+              ry="110.2"
+            />
+            <ellipse
+              transform="matrix(1 -3.676774e-03 3.676774e-03 1 -2.4737 2.4287)"
+              fill="#D1B07C"
+              cx="659.3"
+              cy="674"
+              rx="82"
+              ry="82"
+            />
+            <path
+              fill="#A67C52"
+              d="M593.5,688.5c-0.2-45.3,36.4-82.1,81.7-82.3c14.5-0.1,28.2,3.7,40.1,10.3c-14.7-13.7-34.5-22.1-56.2-22
+			c-45.3,0.2-81.8,37-81.7,82.3c0.1,30.7,17.1,57.4,42.2,71.4C603.6,733.2,593.6,712,593.5,688.5z"
+            />
+            <path
+              fill="#FFFFFF"
+              d="M799.8,655.1l-39.6,0.1c-7.7,0-13.8,6.3-13.8,13.9v2.5c0,7.7,6.3,13.8,13.9,13.8l39.6-0.1
+			c7.7,0,13.8-6.3,13.8-13.9v-2.5C813.6,661.2,807.4,655.1,799.8,655.1z"
+            />
+          </g>
+        </g>
+      </svg>
     </div>
   );
 };

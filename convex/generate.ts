@@ -37,6 +37,34 @@ export const createChat = internalMutation({
   },
 });
 
+export const updateChatTitle = internalMutation({
+  args: {
+    customChatId: v.string(),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!args.customChatId) {
+      return;
+    }
+
+    // Find the chat by customChatId
+    const chat = await ctx.db
+      .query("chats")
+      .withIndex("by_custom_chat_id", (q) =>
+        q.eq("customChatId", args.customChatId)
+      )
+      .first();
+
+    if (!chat) {
+      return;
+    }
+
+    return await ctx.db.patch(chat._id, {
+      title: args.title || "Initial Inquiry",
+    });
+  },
+});
+
 // Helper internal query to get previous messages
 export const getPreviousMessages = internalQuery({
   args: {
@@ -254,6 +282,11 @@ const handleInitialBotResponse = async (
   const jsonObjectJson = JSON.parse(jsonContent);
   console.log(jsonObjectJson);
 
+  await ctx.runMutation(internal.generate.updateChatTitle, {
+    customChatId: args.chatId,
+    title: "Policy Selection",
+  });
+
   // Send the policies selection prompt
   await ctx.runMutation(internal.generate.insertBotResponse, {
     messageId: messageId,
@@ -300,7 +333,7 @@ export const generate = action({
       await ctx.runMutation(internal.generate.createChat, {
         chatId: customChatId,
         userId: userId as Id<"users">,
-        title: args.userMessage,
+        title: "Initial Inquiry",
         category: "Health Insurance",
       });
       chatId = customChatId;
@@ -386,6 +419,11 @@ export const generate = action({
         }
       });
 
+      await ctx.runMutation(internal.generate.updateChatTitle, {
+        customChatId: chatId,
+        title: "Researching the policies",
+      });
+
       //   --------- Step 1: Customize the questions as per the info provided by user ---------
       const messageId = await ctx.runMutation(internal.generate.insertMessage, {
         chatId: chatId,
@@ -393,12 +431,13 @@ export const generate = action({
         botResponses: [
           {
             response:
-              "Just give me few minutes to research the policies and then I will get back to you with the best options",
+              "Give me a few minutes to research the policies, then I'll get back to you with a comprehensive analysis of your selected health insurance plans.",
             researchItems: [
               {
                 title:
-                  "Customize the questions as per the user provided queries",
-                content: "Crafting the questions",
+                  "Customize the questions as per the user the user requirements",
+                content:
+                  "Customize and personalize the questioning framework based on the specific information, preferences, and requirements that the user has shared in their queries, ensuring that each question is directly relevant to their unique needs and situation.",
                 isCompleted: false,
               },
             ],
@@ -406,7 +445,6 @@ export const generate = action({
         ],
       });
 
-      console.log("personalInfoJsonObject", personalInfoJsonObject);
       // Customize the questions as per the info provided by user
       const USER_QUERY = `User Personal Info:
         City: ${personalInfoJsonObject?.city}
@@ -432,8 +470,9 @@ export const generate = action({
         responseIndex: 0,
         researchItemIndex: 1,
         researchItem: {
-          title: "Shoot the API call to LLM with the Policy and questions",
-          content: "Shooting the API call to LLM with the Policy and questions",
+          title: "Generating the comparison report",
+          content:
+            "Generate a comprehensive comparison report that highlights the key features, benefits, and limitations of the selected health insurance plans, ensuring that the user can easily understand the differences between the plans and make an informed decision.",
           isCompleted: false,
         },
       });
@@ -458,6 +497,11 @@ export const generate = action({
 
       console.log("policiesWordings", policiesWordings);
 
+      await ctx.runMutation(internal.generate.updateChatTitle, {
+        customChatId: chatId,
+        title: "Generating the comparison report",
+      });
+
       //   --------- Step 2: Shoot the API call to LLM with the Policy and questions ---------
       // Call the Node.js action to process policies with LLM
       const comparisonResponse = await ctx.runAction(
@@ -481,8 +525,9 @@ export const generate = action({
         responseIndex: 0,
         researchItemIndex: 2,
         researchItem: {
-          title: "Convert the final response to markdown then PDF",
-          content: "Converting the final response to markdown then PDF",
+          title: "Generating the final response",
+          content:
+            "Generate a final response that summarizes the key findings, recommendations, and next steps for the user, ensuring that the user can easily understand the implications of their selected health insurance plans and make an informed decision.",
           isCompleted: false,
         },
       });
@@ -499,6 +544,11 @@ export const generate = action({
         messageId: messageId,
         responseIndex: 0,
         researchItemIndex: 2,
+      });
+
+      await ctx.runMutation(internal.generate.updateChatTitle, {
+        customChatId: chatId,
+        title: "Final Response Generated",
       });
 
       // TODO: Send the final response to the user
