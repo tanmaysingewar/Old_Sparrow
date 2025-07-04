@@ -22,13 +22,13 @@ export default function RootLayout({
         {/* Add your favicon links here */}
         <link
           rel="icon"
-          href="/logo_dark.svg"
+          href="/os_dark.svg"
           sizes="any"
           media="(prefers-color-scheme: dark)"
         />
         <link
           rel="icon"
-          href="/logo_light.svg"
+          href="/os_light.svg"
           sizes="any"
           media="(prefers-color-scheme: light)"
         />
@@ -38,6 +38,7 @@ export default function RootLayout({
           defer
         /> */}
         {/* rest of your scripts go under */}
+        <title>Old Sparrow</title>
       </head>
       <body className="antialiased dark:bg-[#222325] bg-[#f8f8f7] font-mono">
         <ThemeProvider

@@ -122,7 +122,7 @@
 html,
 body {
     height: 100%;
-    overflow: hidden; /* Prevent the main body from scrolling */
+    overflow: auto; /* Allow scrolling */
     margin: 0; /* Reset default margin */
     padding: 0; /* Reset default padding */
 }
