@@ -114,8 +114,9 @@ Provide a personalized acknowledgment that:
 - Do NOT list down any policies yourself - the system will provide the policy list
 - Be encouraging about helping them find the right coverage
 - At the end of your response, add a JSON object with the collected information: 
-- Make sure you return the exact same JSON object as the one below also include the personal_info title in the JSON object as given below:
-\`\`\`personal_info
+- Make sure you return the exact same JSON object as the one below also include the personal_info title in the object as given below:
+- Most important thing is that it should be in code snippet format.
+\`\`\` personal_info
 {
 "age": "{user's age}",
 "city": "{user's city}",

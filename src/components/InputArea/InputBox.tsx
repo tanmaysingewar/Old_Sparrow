@@ -156,6 +156,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
         ],
         chatIdParam
       );
+
       // redirect to the chat page
       const currentSearchParams = new URLSearchParams(window.location.search);
 
@@ -195,6 +196,17 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
       saveLocalMessages(localMessages, chatIdParam);
     }
 
+    // Scroll to bottom of the chat container after sending message
+    setTimeout(() => {
+      const scrollContainer = document.querySelector(".overflow-y-scroll");
+      if (scrollContainer) {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    }, 100);
+
     // generate the response
     await generate({
       chatId: chatIdParam,
@@ -214,16 +226,6 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSendMessage();
-        // Scroll to bottom of the chat container after sending message
-        setTimeout(() => {
-          const scrollContainer = document.querySelector(".overflow-y-scroll");
-          if (scrollContainer) {
-            scrollContainer.scrollTo({
-              top: scrollContainer.scrollHeight,
-              behavior: "smooth",
-            });
-          }
-        }, 100);
       }
     },
     [handleSendMessage]

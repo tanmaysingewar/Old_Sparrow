@@ -23,7 +23,6 @@ interface RenderMessageProps {
   message: Message;
   index: number;
   messages: Message[];
-  chatInitiated: boolean;
   setMessages: (messages: Message[]) => void;
 }
 
@@ -44,7 +43,6 @@ const RenderMessageOnScreen = ({
   message,
   index,
   messages,
-  chatInitiated,
 }: RenderMessageProps) => {
   // const [CopyClicked, setCopyClicked] = useState(false);
 
@@ -62,15 +60,11 @@ const RenderMessageOnScreen = ({
       <div
         className={`mb-2 hidden md:block font-lora ${
           message.role === "user" ? "ml-auto" : "mr-auto"
-        } ${
-          messages.length - 1 === index && message.role === "user"
-            ? "sticky top-4 z-10"
-            : ""
         }`}
         style={{
           minHeight: `${
             messages.length - 1 === index && message.role === "assistant"
-              ? "calc(-200px + 100vh)"
+              ? "calc(-206px + 100vh)"
               : "auto"
           }`,
         }}
@@ -82,19 +76,11 @@ const RenderMessageOnScreen = ({
       <div
         className={`mb-2 block md:hidden font-lora ${
           message.role === "user" ? "ml-auto" : "mr-auto"
-        } ${
-          messages.length - 1 === index &&
-          chatInitiated &&
-          message.role === "user"
-            ? "sticky top-4 z-10"
-            : ""
         }`}
         style={{
           minHeight: `${
-            messages.length - 1 === index &&
-            chatInitiated &&
-            message.role === "assistant"
-              ? "calc(-400px + 100vh)"
+            messages.length - 1 === index && message.role === "assistant"
+              ? "calc(-250px + 100vh)"
               : "auto"
           }`,
         }}
@@ -126,7 +112,7 @@ const MessageBubble = ({ message }: { message: Message }) => {
       <div className="h-full">
         {/* User */}
         {message.role === "user" && (
-          <div className="ml-auto max-w-full w-fit">
+          <div className="ml-auto max-w-full w-fit mt-5">
             <div
               className={`rounded-3xl bg-white dark:text-white rounded-br-lg font-lora p-2 px-4 dark:bg-[#42414369]`}
             >
@@ -260,7 +246,7 @@ const ResearchProcess = ({
           <Loader2 className="w-5 h-5 text-neutral-400 animate-spin" />
         )}
 
-        <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">
+        <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium w-full">
           {item.title}
         </span>
         <ChevronRight

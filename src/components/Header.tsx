@@ -1,6 +1,7 @@
 "use client";
 import {
   LogOutIcon,
+  Monitor,
   Moon,
   SettingsIcon,
   SquarePen,
@@ -18,15 +19,32 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { Button } from "./ui/button";
-// import ChatHistory from "./ChatHistory/Mobile";
+import ChatHistory from "./ChatHistory/Mobile";
 import { Switch } from "./ui/switch";
 import { useUserStore } from "@/store/userStore";
 
 import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
-// import Spinner from "./Spinner";
+import { motion } from "framer-motion";
 
-export default function Header() {
+interface Chat {
+  id: string;
+  title: string;
+  createdAt: string;
+  isShared: boolean;
+  userId: string;
+  category: string;
+  customChatId: string;
+  isDisabled: boolean;
+}
+
+export default function Header({
+  chats,
+  chatLoadings,
+}: {
+  chats: Chat[];
+  chatLoadings: boolean;
+}) {
   const { theme, setTheme } = useTheme();
   const [openChatHistoryDrawer, setOpenChatHistoryDrawer] = useState(false);
   const [logOutLading] = useState(false);
@@ -57,57 +75,6 @@ export default function Header() {
       );
     }
   }, []);
-
-  // const SignInComponent = () => {
-  //   return (
-  //     <Button className="cursor-pointer w-[70px]" disabled={logOutLading}>
-  //       {logOutLading ? (
-  //         <svg
-  //           fill="#000000"
-  //           version="1.1"
-  //           id="Capa_1"
-  //           xmlns="http://www.w3.org/2000/svg"
-  //           xmlnsXlink="http://www.w3.org/1999/xlink"
-  //           width="900px"
-  //           height="900px"
-  //           viewBox="0 0 26.349 26.35"
-  //           style={{ animation: "spin 1s linear infinite" }}
-  //         >
-  //           <style>
-  //             {`
-  //                   @keyframes spin {
-  //                     from {
-  //                       transform: rotate(0deg);
-  //                     }
-  //                     to {
-  //                       transform: rotate(360deg);
-  //                     }
-  //                   }
-  //               `}
-  //           </style>
-  //           <g>
-  //             <g>
-  //               <circle cx="13.792" cy="3.082" r="3.082" />
-  //               <circle cx="13.792" cy="24.501" r="1.849" />
-  //               <circle cx="6.219" cy="6.218" r="2.774" />
-  //               <circle cx="21.365" cy="21.363" r="1.541" />
-  //               <circle cx="3.082" cy="13.792" r="2.465" />
-  //               <circle cx="24.501" cy="13.791" r="1.232" />
-  //               <path d="M4.694,19.84c-0.843,0.843-0.843,2.207,0,3.05c0.842,0.843,2.208,0.843,3.05,0c0.843-0.843,0.843-2.207,0-3.05 C6.902,18.996,5.537,18.988,4.694,19.84z" />
-  //               <circle cx="21.364" cy="6.218" r="0.924" />
-  //             </g>
-  //           </g>
-  //         </svg>
-  //       ) : (
-  //         "Sign In"
-  //       )}
-  //     </Button>
-  //   );
-  // };
-
-  // const closeChatHistory = () => {
-  //   setOpenChatHistoryDrawer(false);
-  // };
 
   return (
     <div className="w-full block">
@@ -160,11 +127,15 @@ export default function Header() {
               </DrawerTrigger>
               <DrawerContent className="w-full dark:bg-[#1d1e20] rounded-t-2xl ">
                 <DrawerTitle></DrawerTitle>
-                {/* <ChatHistory max_chats={7} onClose={closeChatHistory} /> */}
+                <ChatHistory
+                  chats={chats}
+                  chatLoadings={chatLoadings}
+                  onClose={() => {
+                    setOpenChatHistoryDrawer(false);
+                  }}
+                />
               </DrawerContent>
             </Drawer>
-
-            {/* {user ? SignInComponent() : null} */}
             <Drawer>
               <DrawerTrigger className="outline-none">
                 <div className="p-3 hover:bg-neutral-200 dark:hover:bg-[#36383a] cursor-pointer rounded-full outline-none">
@@ -202,23 +173,75 @@ export default function Header() {
                       <div className="flex flex-col space-y-2 mt-5 w-[320px]">
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <p className="text-sm font-medium">Dark Mode</p>
+                            <p className="text-sm font-medium">Theme</p>
+                            <p className="text-xs text-muted-foreground">
+                              Choose your preferred theme
+                            </p>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Sun className="h-5 w-5" />
-                            <Switch
-                              checked={theme === "dark"}
-                              onCheckedChange={(checked) => {
-                                setTheme(checked ? "dark" : "light");
+                          <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-sm relative w-fit p-[1px] ml-5">
+                            <motion.div
+                              className="absolute bg-white dark:bg-[#3e3d3e] rounded-sm shadow-sm"
+                              initial={false}
+                              animate={{
+                                x:
+                                  theme === "system"
+                                    ? 1
+                                    : theme === "light"
+                                      ? 37
+                                      : 72,
+                                width: 35,
+                                height: 30,
+                                y: 0,
+                              }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 30,
                               }}
                             />
-                            <Moon className="h-5 w-5" />
+                            <motion.div
+                              className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                              onClick={() => setTheme("system")}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 25,
+                              }}
+                            >
+                              <Monitor className="w-4 h-4" />
+                            </motion.div>
+                            <motion.div
+                              className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                              onClick={() => setTheme("light")}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 25,
+                              }}
+                            >
+                              <Sun className="w-4 h-4" />
+                            </motion.div>
+                            <motion.div
+                              className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                              onClick={() => setTheme("dark")}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 25,
+                              }}
+                            >
+                              <Moon className="w-4 h-4" />
+                            </motion.div>
                           </div>
                         </div>
                       </div>
                       <Button
                         className="mt-10 w-[100px] cursor-pointer outline-none"
                         onClick={() => handleLogout()}
+                        variant={"destructive"}
                       >
                         {logOutLading ? (
                           <svg
@@ -261,9 +284,9 @@ export default function Header() {
                           <>
                             <LogOutIcon
                               strokeWidth={1.2}
-                              className="h-5 w-5 outline-none"
+                              className="h-5 w-5 text-white outline-none"
                             />
-                            <p className="font-light">Logout</p>
+                            <p className="font-light text-white">Logout</p>
                           </>
                         )}
                       </Button>
@@ -351,7 +374,6 @@ export default function Header() {
                 </Tabs>
               </DrawerContent>
             </Drawer>
-            {/* )} */}
           </div>
         </div>
       </div>

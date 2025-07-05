@@ -162,7 +162,9 @@ export default function ChatPage() {
   }, [getChats]);
 
   return (
-    <div className={`flex w-full h-full dark:bg-[#222325] bg-[#f8f8f7]`}>
+    <div
+      className={`flex w-full h-full dark:bg-[#222325] bg-[#f8f8f7] overflow-hidden`}
+    >
       {/* Chat History - Hidden on mobile by default */}
       <Head>
         <title>Old Sparrow</title>
@@ -195,17 +197,17 @@ export default function ChatPage() {
 
       {/* Main Chat Area */}
       <div
-        className={`flex flex-col w-full dark:bg-[#272728] bg-[#f8f8f7] lg:mt-0 `}
+        className={`flex flex-col w-full dark:bg-[#272728] bg-[#f8f8f7] lg:mt-0 h-full`}
       >
         <div className="lg:hidden">
-          <Header />
+          <Header chats={chats} chatLoadings={chatLoadings} />
         </div>
 
         <div
           className={`flex flex-col w-full ${
             searchParams.get("new")
               ? "h-[calc(100vh-150px)] items-center justify-center"
-              : "h-full"
+              : "flex-1 min-h-0"
           }`}
         >
           {/* Show HeroSection for new chats */}
@@ -232,7 +234,7 @@ export default function ChatPage() {
           ) : (
             /* Show main chat interface */
             <>
-              <div className="overflow-y-scroll h-full [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 mt-12 lg:mt-0">
+              <div className="overflow-y-scroll h-full [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 lg:mt-0">
                 <div className="max-w-[780px] mx-auto px-4 mt-5 md:pl-10">
                   {messages.map((message, index) => (
                     <MemoizedRenderMessageOnScreen
@@ -240,7 +242,6 @@ export default function ChatPage() {
                       message={message}
                       index={index}
                       messages={messages}
-                      chatInitiated={true}
                       setMessages={setMessages}
                     />
                   ))}
