@@ -157,209 +157,31 @@ ${POLICIES_WORDINGS_URLS.map(
 \`\`\` `;
 
 export const POLICY_QUESTIONS_PROMPT = `
-Here are the comprehensive health insurance policy analysis questions:
-
-## Basic Policy Information Analysis
-
 1. Is this an Individual Plan or a Family Floater Plan?
-
-2. If it's a family floater, how is the sum assured shared among family members - is it a combined limit for all members or individual limits per person?
-
-3. What is the sum assured amount, and are there multiple coverage options available?
-
-4. How is the premium calculated - especially for family plans, is it based on the eldest member's age?
-
-5. Is this a Pan-India policy or a Zonal policy?
-
-6. If zonal, what co-payment applies when treated outside your registered zone?
-
-7. Does the policy offer both cashless and reimbursement claim options?
-
-8. Can you get reimbursed for treatment at non-network hospitals, or are you restricted to cashless-only facilities?
-
-9. What is the initial waiting period, and are accidents covered from Day 1?
-
-10. Are there any major sub-limits (like room rent caps or disease-specific limits) that could significantly impact your claims?
-
-## Sub-limits & Restrictions Analysis
-
-11. Does the policy document mention any disease-specific sub-limits? If yes, please list all diseases/treatments with their respective sub-limits.
-
-12. What are the specific coverage limits mentioned for cataract surgery?
-
-13. What are the coverage limits for cardiac procedures (angioplasty, bypass)?
-
-14. What are the limits for orthopedic surgeries?
-
-15. What are the coverage limits for cancer treatments?
-
-16. What are the limits for dialysis procedures?
-
-17. Are there coverage limits for any other commonly mentioned treatments?
-
-18. Is there a room rent limitation mentioned in the policy? If yes, what is the exact limit?
-
-19. Does the policy mention proportional deduction for exceeding room rent limits? What is the exact clause?
-
-20. Are there separate room rent limits mentioned for ICU/ICCU? What are these limits?
-
-21. Does the policy document mention any mandatory co-payment clauses? What are the percentages and circumstances?
-
-22. Are there different co-payment percentages based on age groups? What are the age brackets and corresponding percentages?
-
-23. Are there any zonal co-payment requirements? What are the percentages and circumstances?
-
-## Waiting Periods Comprehensive Analysis
-
-24. What is the initial waiting period mentioned in the policy?
-
-25. How does the policy define "emergency" and what treatments are covered immediately?
-
-26. How does the policy document define "pre-existing diseases"?
-
-27. What is the waiting period for pre-existing diseases?
-
-28. Are there different waiting periods for different types of pre-existing diseases?
-
-29. What are the requirements for declaring pre-existing diseases?
-
-30. How far back does the medical history requirement go?
-
-31. What diseases have specific waiting periods (like hernia, cataract, joint replacement, etc.) and what are these periods?
-
-32. What is the waiting period for critical illnesses?
-
-33. What is the complete list of critical illnesses covered as mentioned in the policy?
-
-34. Are there any sub-limits for critical illness coverage?
-
-35. Is maternity coverage included and what is the waiting period?
-
-36. What is the maternity coverage amount/limit?
-
-37. Is newborn coverage automatic?
-
-38. Does the policy cover AYUSH treatments and what is the waiting period?
-
-39. Are there any sub-limits for AYUSH treatments?
-
-## Policy Benefits & Features Analysis
-
-40. Does the policy offer restoration of sum assured?
-
-41. Can restored amount be used for the same illness or only unrelated illnesses?
-
-42. How many times can restoration happen in a policy year?
-
-43. What percentage of sum assured is restored?
-
-44. What is the No-Claim Bonus structure mentioned in the policy?
-
-45. What is the percentage increase per claim-free year for NCB?
-
-46. What is the maximum NCB accumulation possible?
-
-47. If a claim is made, is NCB completely reset or only reduced by one level?
-
-48. Is free annual health check-up provided and what is the monetary value?
-
-49. What tests/procedures are included in the health check-up?
-
-50. Does the policy mention online doctor consultation services?
-
-51. Are there pharmacy benefits included?
-
-52. What is the ambulance coverage and its limits?
-
-53. Are home healthcare services covered?
-
-## Coverage Scope & Claims Analysis
-
-54. What is the coverage period for pre-hospitalization expenses?
-
-55. What is the coverage period for post-hospitalization expenses?
-
-56. What expenses are covered under pre and post hospitalization categories?
-
-57. Are day care treatments covered?
-
-58. What day care procedures are specifically mentioned in the policy?
-
-59. Does the policy clearly state that both cashless and reimbursement options are available?
-
-60. What does the policy say about treatment at network hospitals?
-
-61. What does the policy say about treatment at non-network hospitals?
-
-62. Does the policy guarantee reimbursement for treatment at non-network hospitals?
-
-## Exclusions & Limitations Analysis
-
-63. What are all the permanently excluded diseases/treatments mentioned in the policy?
-
-64. What treatments are temporarily excluded and for what duration?
-
-65. Are treatments related to alcohol, smoking, drugs, or self-inflicted injuries excluded?
-
-66. Are there any age-related exclusions or coverage limitations mentioned?
-
-67. What does the policy say about coverage for mental health treatments?
-
-68. Are dental treatments covered?
-
-69. What is the policy's stance on cosmetic/plastic surgery coverage?
-
-70. Are experimental treatments covered?
-
-71. What does the policy say about organ transplant coverage?
-
-## Top-up/Super Top-up Analysis
-
-72. Is this document for a Top-up or Super Top-up plan?
-
-73. What is the deductible amount if applicable?
-
-74. How is the deductible applied (per claim or aggregate annual)?
-
-75. What conditions must be met for the top-up to activate?
-
-76. Does the policy require maintaining a separate base health insurance policy?
-
-## Renewal & Continuity Analysis
-
-77. What is the maximum age for policy renewal?
-
-78. Does the policy offer lifetime renewability?
-
-79. Under what conditions can the insurer refuse renewal?
-
-80. Under what circumstances can the premium be revised during renewal?
-
-81. What does the policy document say about portability to other insurers?
-
-## Critical Deal-Breaker Analysis
-
-82. Does the policy document explicitly state that reimbursement is available for non-network hospitals?
-
-83. Are there any restrictions that would force you to use only cashless facilities?
-
-84. In emergency situations, does the policy guarantee coverage regardless of hospital network status?
-
-85. Based on the entire document analysis, what are the potential coverage gaps or limitations that could leave you financially exposed?
-
-86. What clauses or conditions in this policy document should be of most concern?
-
-## Final Summary Questions
-
-87. What are the policy's main strengths based on the document analysis?
-
-88. What are the policy's main weaknesses/limitations?
-
-89. What critical information seems to be missing from the policy document?
-
-90. Are there any major red flags that would make this policy unsuitable?
-
-91. What is your overall recommendation regarding this health insurance policy?
+2. What is the sum assured amount, and are there multiple coverage options available?
+3. How is the premium calculated - especially for family plans, is it based on the eldest member's age?
+4. Does the policy offer both cashless and reimbursement claim options?
+5. What is the initial waiting period, and are accidents covered from Day 1?
+6. Are there any major sub-limits (like room rent caps or disease-specific limits) that could significantly impact your claims?
+7. Does the policy document mention any disease-specific sub-limits? If yes, please list all diseases/treatments with their respective sub-limits.
+8. Is there a room rent limitation mentioned in the policy? If yes, what is the exact limit?
+9. Does the policy mention proportional deduction for exceeding room rent limits? What is the exact clause?
+10. Does the policy document mention any mandatory co-payment clauses? What are the percentages and circumstances?
+11. What is the waiting period for pre-existing diseases?
+12. What diseases have specific waiting periods (like hernia, cataract, joint replacement, etc.) and what are these periods?
+13. Is maternity coverage included and what is the waiting period?
+14. Does the policy offer restoration of sum assured?
+15. What is the No-Claim Bonus structure mentioned in the policy?
+16. Is free annual health check-up provided and what is the monetary value?
+17. What is the coverage period for pre-hospitalization expenses?
+18. What is the coverage period for post-hospitalization expenses?
+19. Are day care treatments covered?
+20. What are all the permanently excluded diseases/treatments mentioned in the policy?
+21. What treatments are temporarily excluded and for what duration?
+22. What is the maximum age for policy renewal?
+23. Does the policy offer lifetime renewability?
+24. Does the policy document explicitly state that reimbursement is available for non-network hospitals?
+25. Based on the entire document analysis, what are the potential coverage gaps or limitations that could leave you financially exposed?
 `;
 
 export const POLICY_COMPARISON_PROMPT = `SYSTEM PROMPT: Health Insurance Policy Document Comparative Analyzer
