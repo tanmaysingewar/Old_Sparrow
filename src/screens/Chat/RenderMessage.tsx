@@ -1,7 +1,6 @@
 "use client";
 import React, { memo, useState, useRef, useEffect } from "react";
 import MessageRenderer from "@/screens/Chat/Markdown";
-import Spinner from "@/components/Spinner";
 import PDFIcon from "@/components/InputArea/assets/pdf";
 import DOCIcon from "@/components/InputArea/assets/doc";
 import { CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
@@ -35,7 +34,7 @@ interface RenderMessageProps {
 const LoadingIndicator = () => {
   return (
     <div className="flex items-center space-x-2">
-      <Spinner className="w-5 h-5" />
+      {/* <Spinner className="w-5 h-5" /> */}
       <span className="loading-text-shine">Generating response...</span>
     </div>
   );
@@ -256,9 +255,9 @@ const ResearchProcess = ({
         onClick={toggleItem}
       >
         {item.isCompleted ? (
-          <CheckCircle2 className="w-4 h-4 text-green-700" />
+          <CheckCircle2 className="w-5 h-5 text-green-700" />
         ) : (
-          <Loader2 className="w-4 h-4 text-neutral-400 animate-spin" />
+          <Loader2 className="w-5 h-5 text-neutral-400 animate-spin" />
         )}
 
         <span className="text-[14px] text-neutral-500 dark:text-neutral-200 ml-1 flex items-center justify-left font-medium truncate w-full">
@@ -302,7 +301,7 @@ const ResearchProcess = ({
 
       {/* Vertical dashed line spanning the full height */}
       {index !== (Object.keys(itemHeights).length || 0) - 1 && (
-        <div className="absolute left-[7px] top-5 bottom-[-14px] w-0 border-l-1 border-dashed border-gray-300 dark:border-[#4a4a4b]"></div>
+        <div className="absolute left-[8px] top-5 bottom-[-14px] w-0 border-l-1 border-dashed border-gray-300 dark:border-[#4a4a4b]"></div>
       )}
     </div>
   );

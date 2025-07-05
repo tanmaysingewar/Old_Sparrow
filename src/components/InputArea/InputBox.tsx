@@ -209,6 +209,16 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSendMessage();
+        // Scroll to bottom of the chat container after sending message
+        setTimeout(() => {
+          const scrollContainer = document.querySelector(".overflow-y-scroll");
+          if (scrollContainer) {
+            scrollContainer.scrollTo({
+              top: scrollContainer.scrollHeight,
+              behavior: "smooth",
+            });
+          }
+        }, 100);
       }
     },
     [handleSendMessage]

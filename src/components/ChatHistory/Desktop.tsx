@@ -127,7 +127,7 @@ export default function ChatHistoryDesktop({
     (chatId: string, chatTitle: string, customChatId: string) => {
       const currentSearchParams = new URLSearchParams(window.location.search);
 
-      document.title = chatTitle + " - Better Index";
+      document.title = chatTitle + " - Old Sparrow";
       currentSearchParams.set("chatId", customChatId);
       currentSearchParams.delete("new");
       window.history.pushState({}, "", `/chat?${currentSearchParams}`);
@@ -139,7 +139,7 @@ export default function ChatHistoryDesktop({
     const currentSearchParams = new URLSearchParams(window.location.search);
     currentSearchParams.set("new", "true");
     currentSearchParams.delete("chatId");
-    document.title = "Better Index";
+    document.title = "Old Sparrow";
     window.history.pushState({}, "", `/chat?${currentSearchParams}`);
   }, []);
 

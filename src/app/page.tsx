@@ -72,7 +72,7 @@ export default function LandingPage() {
                   Sign In
                 </Button>
               </Link>
-              <Link href="/chat?new=true">
+              <Link href="/login">
                 <Button
                   className={`${poppins.className} bg-gray-900 hover:bg-gray-800 text-white`}
                 >
@@ -81,7 +81,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="flex items-center space-x-3 md:hidden">
-              <Link href="/chat?new=true">
+              <Link href="/login">
                 <Button
                   className={`${poppins.className} bg-gray-900 hover:bg-gray-800 text-white`}
                 >
@@ -110,7 +110,7 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link href="/chat?new=true">
+              <Link href="/login">
                 <Button
                   size="lg"
                   className={`text-lg px-8 py-3 bg-gray-900 hover:bg-gray-800 text-white ${poppins.className}`}
@@ -149,7 +149,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <div key={index} className="text-center space-y-3">
                 <div className="text-3xl">{feature.icon}</div>
@@ -235,7 +235,7 @@ export default function LandingPage() {
             experience.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/chat?new=true">
+            <Link href="/login">
               <Button
                 size="lg"
                 className={`text-lg px-8 py-3 bg-gray-900 hover:bg-gray-800 text-white ${poppins.className}`}

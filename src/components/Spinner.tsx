@@ -1,17 +1,11 @@
 import React from "react";
 
-export default function Spinner({ className }: { className?: string }) {
+export default function Spinner() {
   return (
     <div className="flex">
       {/* classname is not there then set w-5 h-5 */}
-      <div
-        className={`relative rounded-full perspective-[800px] ${
-          className || "w-[30px] h-[30px]"
-        }`}
-      >
-        <div className="absolute w-full h-full rounded-full border-b-[3px] border-solid border-black dark:border-[#efeffa] animate-[rotate-one_1s_linear_infinite]"></div>
-        <div className="absolute w-full h-full rounded-full border-r-[3px] border-solid border-black dark:border-[#efeffa] animate-[rotate-two_1s_linear_infinite]"></div>
-        <div className="absolute w-full h-full rounded-full border-t-[3px] border-solid border-black dark:border-[#efeffa] animate-[rotate-three_1s_linear_infinite]"></div>
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 dark:border-gray-300"></div>
       </div>
     </div>
   );

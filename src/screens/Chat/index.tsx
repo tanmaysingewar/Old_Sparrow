@@ -100,7 +100,7 @@ export default function ChatPage() {
     <div className={`flex w-full h-full dark:bg-[#222325] bg-[#f8f8f7]`}>
       {/* Chat History - Hidden on mobile by default */}
       <Head>
-        <title>Better Index</title>
+        <title>Old Sparrow</title>
         <meta name="description" content="example description" />
       </Head>
 
