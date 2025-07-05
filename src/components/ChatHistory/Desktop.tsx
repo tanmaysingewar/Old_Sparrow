@@ -9,15 +9,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useUserStore } from "@/store/userStore";
-import { Sidebar, User } from "lucide-react";
+import { Sidebar, Trash, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import Settings from "../Setting";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { api } from "../../../convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useUserChats } from "@/store/userChats";
+import { toast } from "sonner";
 
 // Interface for individual chat items
 interface Chat {
@@ -148,6 +149,23 @@ export default function ChatHistoryDesktop({
     return searchParams.get("chatId");
   }, [searchParams]);
 
+  const handleDeleteChat = useMutation(api.chats.deleteChat);
+
+  const deleteChat = async (chatId: string) => {
+    try {
+      await handleDeleteChat({ chatId });
+      toast.success("Chat deleted successfully");
+      const currentSearchParams = new URLSearchParams(window.location.search);
+      currentSearchParams.set("new", "true");
+      currentSearchParams.delete("chatId");
+      document.title = "Old Sparrow";
+      window.history.pushState({}, "", `/chat?${currentSearchParams}`);
+    } catch (error) {
+      toast.error("Failed to delete chat");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full dark:bg-[#212122] bg-[#ebebeb] select-none">
       <div className="flex flex-row items-center gap-2 justify-between">
@@ -210,9 +228,6 @@ export default function ChatHistoryDesktop({
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const chat = displayedChats[virtualRow.index];
-                const isDeleting = "1" === chat.id;
-                const isEditing = "1" === chat.id;
-                const isUpdating = "1" === chat.id;
 
                 return (
                   <div
@@ -225,20 +240,12 @@ export default function ChatHistoryDesktop({
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
-                    onClick={
-                      isEditing
-                        ? undefined
-                        : () =>
-                            handleChatClick(
-                              chat.id,
-                              chat.title,
-                              chat.customChatId
-                            )
+                    onClick={() =>
+                      handleChatClick(chat.id, chat.title, chat.customChatId)
                     }
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) =>
-                      !isEditing &&
                       e.key === "Enter" &&
                       handleChatClick(chat.id, chat.title, chat.customChatId)
                     }
@@ -248,11 +255,7 @@ export default function ChatHistoryDesktop({
                         currentChatId === chat.customChatId
                           ? "bg-white dark:bg-[#1a1a1a] hover:bg-white"
                           : ""
-                      } ${
-                        isDeleting || isUpdating
-                          ? "opacity-50 pointer-events-none"
-                          : ""
-                      } ${isEditing ? "cursor-default" : ""}`}
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <>
@@ -267,6 +270,15 @@ export default function ChatHistoryDesktop({
                             </p>
                           </div>
                         </>
+                        <div className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Trash
+                            size={14}
+                            onClick={() => {
+                              deleteChat(chat.customChatId);
+                            }}
+                            className=" text-neutral-500 hover:text-red-800 dark:text-neutral-400 hover:dark:text-red-800 hover:scale-110 transition-all duration-300 cursor-pointer"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { ConvexClientProvider } from "./ConvexClientProvider";
+import { Toaster } from "sonner";
 
 // export const metadata: Metadata = {
 //   title: "Better Index",
@@ -50,6 +51,7 @@ export default function RootLayout({
           <ConvexClientProvider>{children}</ConvexClientProvider>
           <SpeedInsights />
           <Analytics />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
