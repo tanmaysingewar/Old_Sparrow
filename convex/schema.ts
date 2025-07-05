@@ -14,6 +14,7 @@ export default defineSchema({
     category: v.optional(v.string()),
     createdAt: v.number(), // Unix timestamp
     isShared: v.optional(v.boolean()), // Optional, defaults to false
+    isDisabled: v.optional(v.boolean()), // Optional, defaults to false
   })
     .index("by_user", ["userId"])
     .index("by_user_created", ["userId", "createdAt"])

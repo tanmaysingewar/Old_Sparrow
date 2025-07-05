@@ -7,7 +7,7 @@ import {
 } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
 import {
@@ -281,6 +281,11 @@ const handleInitialBotResponse = async (
     .replace(/\n```$/, "");
   const jsonObjectJson = JSON.parse(jsonContent);
   console.log(jsonObjectJson);
+
+  await ctx.runMutation(api.chats.disableChat, {
+    chatId: args.chatId,
+    isDisabled: true,
+  });
 
   await ctx.runMutation(internal.generate.updateChatTitle, {
     customChatId: args.chatId,

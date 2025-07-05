@@ -6,16 +6,16 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion";
 import {
   OctagonPause,
   Send,
   Paperclip,
   Loader2,
   X,
-  MessageSquareMore,
-  Atom,
-  ZapIcon,
+  // MessageSquareMore,
+  // Atom,
+  // ZapIcon,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import TextInput, { TextInputRef } from "./TextInput";
@@ -26,6 +26,11 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useSearchParams } from "next/navigation";
 import { getLocalMessages, saveLocalMessages } from "@/store/saveMessages";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface InputBoxProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,7 +50,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
 ) {
   const textInputRef = useRef<TextInputRef>(null);
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<"auto" | "chat" | "agent">("auto");
+  // const [mode, setMode] = useState<"auto" | "chat" | "agent">("auto");
 
   // Expose focus method through ref
   useImperativeHandle(ref, () => ({
@@ -277,28 +282,33 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
           <div className="flex flex-row justify-between w-full mt-0">
             <div className="flex flex-row mt-2 dark:text-neutral-200 mx-2 mb-2 justify-center items-center gap-2">
               <div className="mt-0 flex flex-row gap-3">
-                <div
-                  className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
-                >
-                  <label
-                    htmlFor="file-upload"
-                    className={`flex flex-row items-center p-1.5 ${
-                      isDisabled ? "cursor-wait" : "cursor-pointer"
-                    }`}
-                  >
-                    <input
-                      type="file"
-                      id="file-upload"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      disabled={isDisabled}
-                      accept="application/pdf"
-                    />
-                    <Paperclip className="w-[18px] h-[18px]" />
-                  </label>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div
+                      className={`flex flex-row items-center justify-center rounded-full border cursor-pointer bg-transparent text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-600`}
+                    >
+                      <label
+                        htmlFor="file-upload"
+                        className={`flex flex-row items-center p-1.5 cursor-pointer`}
+                      >
+                        <input
+                          type="file"
+                          id="file-upload"
+                          onChange={handleFileChange}
+                          className="hidden"
+                          disabled={true}
+                          accept="application/pdf"
+                        />
+                        <Paperclip className="w-[18px] h-[18px] text-neutral-300 dark:text-neutral-600" />
+                      </label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Coming Soon</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-              <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-full relative w-fit p-[1px]">
+              {/* <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-full relative w-fit p-[1px]">
                 <motion.div
                   className="absolute bg-white dark:bg-[#3e3d3e] rounded-full shadow-sm"
                   initial={false}
@@ -338,7 +348,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
                 >
                   <Atom className="w-4 h-4" />
                 </motion.div>
-              </div>
+              </div> */}
             </div>
             <div className="flex flex-row justify-center items-center">
               <p className="text-xs dark:text-neutral-400 text-neutral-500 mr-3 hidden md:block select-none">

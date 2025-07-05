@@ -18,6 +18,31 @@ export const get = query({
   },
 });
 
+export const disableChat = mutation({
+  args: {
+    chatId: v.string(),
+    isDisabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+    const chat = await ctx.db
+      .query("chats")
+      .filter((q) => q.eq(q.field("customChatId"), args.chatId))
+      .first();
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+    if (chat.userId !== userId) {
+      throw new Error("Not authorized to disable this chat");
+    }
+    await ctx.db.patch(chat._id, { isDisabled: args.isDisabled });
+    return { success: true };
+  },
+});
+
 export const deleteChat = mutation({
   args: {
     chatId: v.string(),

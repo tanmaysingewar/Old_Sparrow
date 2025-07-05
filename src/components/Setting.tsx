@@ -1,22 +1,16 @@
 // app/routes/settings.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { Command, LogOutIcon, Moon, Sun, UserRound } from "lucide-react"; // Removed unused Database icon
+import { LogOutIcon, Monitor, Moon, Sun, UserRound } from "lucide-react"; // Removed unused Database icon
 import { Avatar, AvatarFallback } from "./ui/avatar";
 // import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import Image from "next/image";
 import { Switch } from "./ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { useUserStore } from "@/store/userStore";
 import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
 
 // 2. Use the SettingsProps interface and destructure 'user' from it
 export default function Settings() {
@@ -25,7 +19,6 @@ export default function Settings() {
   const { user } = useUserStore();
   const [logOutLading] = useState(false);
   const { theme, setTheme } = useTheme();
-
   useEffect(() => {
     // Placeholder logic: Set example values
     // TODO: Replace this with your actual logic to get these values
@@ -52,7 +45,7 @@ export default function Settings() {
 
   return (
     <div className=" flex flex-col">
-      <div className="p-3 dark:bg-[#1d1e20] rounded-3xl">
+      <div className="p-3 dark:bg-[#212122] rounded-3xl">
         <p className="text-xl font-normal ml-3 mt-3">Settings</p>
         <div className="flex flex-row">
           <div className="mt-5 min-w-44 gap-2 flex flex-col">
@@ -68,19 +61,19 @@ export default function Settings() {
               <p className="font-light">Account</p>
             </div>
             {/* <div
-                className={`flex gap-2 text-sm text-left font-light cursor-pointer rounded-xl px-4 py-3 text-neutral-400 ${selected === "Appearance" ? "bg-neutral-700 dark:bg-[#28292b] text-white" : "hover:bg-neutral-700 dark:hover:bg-[#28292b] hover:text-white"}`}
-                onClick={() => setSelected("Appearance")}
-              >
-                <Highlighter strokeWidth={1.2} className="h-5 w-5" />
-                <p className="font-light">Highlighter</p>
-              </div> */}
-            {/* <div
-                className={`flex gap-2 text-sm text-left font-light hover:bg-neutral-700 dark:hover:bg-[#28292b] cursor-pointer rounded-xl px-4 py-3 text-neutral-400 ${selected === "Data" ? "bg-neutral-700 dark:bg-[#28292b] text-white" : "hover:bg-neutral-700 dark:hover:bg-[#28292b] hover:text-white"}`}
-                onClick={() => setSelected("Data")}
-              >
-                <Database strokeWidth={1.2} className="h-5 w-5 " />
-                <p className="font-light">Data</p>
-              </div> */}
+              className={`flex gap-2 text-sm text-left font-light cursor-pointer rounded-xl px-4 py-3 text-neutral-400 ${selected === "Appearance" ? "bg-neutral-700 dark:bg-[#28292b] text-white" : "hover:bg-neutral-700 dark:hover:bg-[#28292b] hover:text-white"}`}
+              onClick={() => setSelected("Appearance")}
+            >
+              <Highlighter strokeWidth={1.2} className="h-5 w-5" />
+              <p className="font-light">Highlighter</p>
+            </div>
+            <div
+              className={`flex gap-2 text-sm text-left font-light hover:bg-neutral-700 dark:hover:bg-[#28292b] cursor-pointer rounded-xl px-4 py-3 text-neutral-400 ${selected === "Data" ? "bg-neutral-700 dark:bg-[#28292b] text-white" : "hover:bg-neutral-700 dark:hover:bg-[#28292b] hover:text-white"}`}
+              onClick={() => setSelected("Data")}
+            >
+              <Database strokeWidth={1.2} className="h-5 w-5 " />
+              <p className="font-light">Data</p>
+            </div> */}
           </div>
           {selected === "Account" && (
             <div className="mx-5">
@@ -109,32 +102,58 @@ export default function Settings() {
                       Choose your preferred theme
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Select value={theme} onValueChange={setTheme}>
-                      <SelectTrigger className="w-[140px] ml-5">
-                        <SelectValue placeholder="Select theme" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="light">
-                          <div className="flex items-center space-x-2">
-                            <Sun className="h-4 w-4" />
-                            <span>Light</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="dark">
-                          <div className="flex items-center space-x-2">
-                            <Moon className="h-4 w-4" />
-                            <span>Dark</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="system">
-                          <div className="flex items-center space-x-2">
-                            <Command className="h-4 w-4" />
-                            <span>System</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex flex-row items-center bg-neutral-200 dark:bg-[#2b2a2c] rounded-sm relative w-fit p-[1px] ml-5">
+                    <motion.div
+                      className="absolute bg-white dark:bg-[#3e3d3e] rounded-sm shadow-sm"
+                      initial={false}
+                      animate={{
+                        x: theme === "system" ? 1 : theme === "light" ? 37 : 72,
+                        width: 35,
+                        height: 30,
+                        y: 0,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    />
+                    <motion.div
+                      className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                      onClick={() => setTheme("system")}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25,
+                      }}
+                    >
+                      <Monitor className="w-4 h-4" />
+                    </motion.div>
+                    <motion.div
+                      className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                      onClick={() => setTheme("light")}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25,
+                      }}
+                    >
+                      <Sun className="w-4 h-4" />
+                    </motion.div>
+                    <motion.div
+                      className="p-2 rounded-full cursor-pointer relative z-10 flex items-center justify-center w-9 h-8"
+                      onClick={() => setTheme("dark")}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 25,
+                      }}
+                    >
+                      <Moon className="w-4 h-4" />
+                    </motion.div>
                   </div>
                 </div>
               </div>

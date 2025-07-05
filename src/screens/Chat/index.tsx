@@ -16,6 +16,18 @@ import { api } from "../../../convex/_generated/api";
 import { useUserStore } from "@/store/userStore";
 import { saveLocalMessages, getLocalMessages } from "@/store/saveMessages";
 import { Sidebar } from "lucide-react";
+import { useUserChats } from "@/store/userChats";
+
+interface Chat {
+  id: string;
+  title: string;
+  createdAt: string;
+  isShared: boolean;
+  userId: string;
+  category: string;
+  customChatId: string;
+  isDisabled: boolean;
+}
 
 const pacifico = Pacifico({
   subsets: ["latin"],
@@ -35,14 +47,19 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatId = searchParams.get("chatId");
+  const [disableChat, setDisableChat] = useState(false);
   const getMessages = useQuery(
     api.messages.get,
     chatId ? { chatId: chatId } : "skip"
   );
+  const getChats = useQuery(api.chats.get);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [chatLoadings, setChatLoadings] = useState(true);
 
   useEffect(() => {
     if (searchParams.get("new")) {
       setMessages([]);
+      setDisableChat(false);
     }
   }, [searchParams]);
 
@@ -50,6 +67,15 @@ export default function ChatPage() {
     if (chatId) {
       const messages = getLocalMessages(chatId);
       setMessages(messages);
+      setDisableChat(false);
+    }
+
+    // get userChat and set isDisabled
+    const userChat = useUserChats
+      .getState()
+      .userChats.find((chat) => chat.customChatId === chatId);
+    if (userChat) {
+      setDisableChat(userChat.isDisabled || false);
     }
 
     if (chatId && getMessages) {
@@ -96,6 +122,45 @@ export default function ChatPage() {
     }
   }, [getMessages, chatId]);
 
+  useEffect(() => {
+    const userChats = useUserChats.getState().userChats;
+    setChats(
+      userChats.map((chat) => ({
+        id: chat._id,
+        title: chat.title,
+        createdAt: chat.createdAt.toString(),
+        isShared: chat.isShared || false,
+        userId: chat.userId,
+        category: chat.category || "Untitled Chat",
+        customChatId: chat.customChatId,
+        isDisabled: chat.isDisabled || false,
+      })) || []
+    );
+
+    setChatLoadings(true);
+
+    if (getChats) {
+      const newChats = getChats.map((chat) => ({
+        id: chat._id,
+        title: chat.title,
+        createdAt: chat.createdAt.toString(),
+        isShared: chat.isShared || false,
+        userId: chat.userId,
+        category: chat.category || "Untitled Chat",
+        customChatId: chat.customChatId,
+        isDisabled: chat.isDisabled || false,
+      }));
+      useUserChats.setState({ userChats: newChats || [] });
+      setChats(newChats);
+      setChatLoadings(false);
+      // set isDisabled for the chat
+      const userChat = newChats.find((chat) => chat.customChatId === chatId);
+      if (userChat) {
+        setDisableChat(userChat.isDisabled || false);
+      }
+    }
+  }, [getChats]);
+
   return (
     <div className={`flex w-full h-full dark:bg-[#222325] bg-[#f8f8f7]`}>
       {/* Chat History - Hidden on mobile by default */}
@@ -113,6 +178,8 @@ export default function ChatPage() {
           <ChatHistoryDesktop
             hideChatHistory={hideChatHistory}
             setHideChatHistory={setHideChatHistory}
+            chats={chats}
+            chatLoadings={chatLoadings}
           />
         </div>
       ) : (
@@ -183,17 +250,19 @@ export default function ChatPage() {
             </>
           )}
 
-          <div className="w-full mx-auto max-w-[750px]">
-            <div
-              className={`mx-auto ${
-                searchParams.get("new")
-                  ? "mt-4"
-                  : "fixed bottom-0 pb-2 bg-[#f8f8f7] dark:bg-[#272728]"
-              }`}
-            >
-              <InputBox setMessages={setMessages} messages={messages} />
+          {!disableChat && (
+            <div className="w-full mx-auto max-w-[750px]">
+              <div
+                className={`mx-auto ${
+                  searchParams.get("new")
+                    ? "mt-4"
+                    : "fixed bottom-0 pb-2 bg-[#f8f8f7] dark:bg-[#272728]"
+                }`}
+              >
+                <InputBox setMessages={setMessages} messages={messages} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

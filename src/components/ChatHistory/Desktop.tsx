@@ -16,8 +16,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Loader2 } from "lucide-react";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { api } from "../../../convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { useUserChats } from "@/store/userChats";
+import { useMutation } from "convex/react";
+
 import { toast } from "sonner";
 
 // Interface for individual chat items
@@ -29,6 +29,7 @@ interface Chat {
   userId: string;
   category: string;
   customChatId: string;
+  isDisabled: boolean;
 }
 
 // Debounce hook
@@ -48,59 +49,24 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function ChatHistoryDesktop({
   hideChatHistory,
   setHideChatHistory,
+  chats,
+  chatLoadings,
 }: {
   hideChatHistory: boolean;
   setHideChatHistory: (hideChatHistory: boolean) => void;
+  chats: Chat[];
+  chatLoadings: boolean;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [chats, setChats] = useState<Chat[]>([]);
   const [openSettings, setOpenSettings] = useState(false);
   const { user } = useUserStore();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [chatLoadings, setChatLoadings] = useState(true);
 
   // Reference for the chat list container
   const chatListRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const getChats = useQuery(api.chats.get);
-
-  useEffect(() => {
-    const userChats = useUserChats.getState().userChats;
-    console.log(userChats);
-    setChats(
-      userChats.map((chat) => ({
-        id: chat._id,
-        title: chat.title,
-        createdAt: chat.createdAt.toString(),
-        isShared: chat.isShared || false,
-        userId: chat.userId,
-        category: chat.category || "Untitled Chat",
-        customChatId: chat.customChatId,
-      })) || []
-    );
-
-    setChatLoadings(true);
-
-    if (getChats) {
-      setChats(
-        getChats?.map((chat) => ({
-          id: chat._id,
-          title: chat.title,
-          createdAt: chat.createdAt.toString(),
-          isShared: chat.isShared || false,
-          userId: chat.userId,
-          category: chat.category || "Untitled Chat",
-          customChatId: chat.customChatId,
-        })) || []
-      );
-      useUserChats.setState({
-        userChats: getChats || [],
-      });
-      setChatLoadings(false);
-    }
-  }, [getChats, useUserChats.getState().userChats]);
 
   // Filter chats based on search term - computed only when dependencies change
   const displayedChats = useMemo(() => {
@@ -231,7 +197,7 @@ export default function ChatHistoryDesktop({
 
                 return (
                   <div
-                    key={chat.id}
+                    key={chat.customChatId}
                     style={{
                       position: "absolute",
                       top: 0,
@@ -316,7 +282,7 @@ export default function ChatHistoryDesktop({
           </div>
         </div>
         <Dialog open={openSettings} onOpenChange={setOpenSettings}>
-          <DialogContent className="dark:bg-[#1d1e20] h-[60vh] w-[53vw]">
+          <DialogContent className="dark:bg-[#212122] h-[60vh] w-[53vw]">
             <DialogHeader>
               <DialogTitle className="hidden">Settings</DialogTitle>
               <Settings />
