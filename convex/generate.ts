@@ -407,6 +407,7 @@ export const generate = action({
             pre_existing_diseases: string;
             specific_questions: string;
             other_info: string;
+            gender: string;
           }
         | undefined;
 
@@ -454,10 +455,13 @@ export const generate = action({
       const USER_QUERY = `User Personal Info:
         City: ${personalInfoJsonObject?.city}
         Age: ${personalInfoJsonObject?.age}
+        Gender: ${personalInfoJsonObject?.gender}
         Pre Existing Diseases: ${personalInfoJsonObject?.pre_existing_diseases}
         Other Info: ${personalInfoJsonObject?.other_info}
         Specific Questions: ${personalInfoJsonObject?.specific_questions}
 
+        - Customize the questions as per the user requirements
+        - While answering the questions, make sure use the user information to answer the questions
         Here are question that need to be answered:
         ${POLICY_QUESTIONS_PROMPT}
         `;
