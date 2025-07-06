@@ -195,7 +195,7 @@ export default function ChatPage() {
           />
         </div>
       ) : (
-        <div className="bg-white dark:bg-[#272728]">
+        <div className="bg-[#f8f8f7] dark:bg-[#272728]">
           <div
             className="m-1 ml-2 mt-3 hover:cursor-pointer hover:bg-neutral-200 dark:hover:bg-[#1a1a1a] rounded-sm p-1 w-fit text-neutral-400"
             onClick={() => setHideChatHistory(!hideChatHistory)}
