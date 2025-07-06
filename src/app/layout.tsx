@@ -41,7 +41,7 @@ export default function RootLayout({
         {/* rest of your scripts go under */}
         <title>Old Sparrow</title>
       </head>
-      <body className="antialiased dark:bg-[#222325] bg-[#f8f8f7] font-mono">
+      <body className="antialiased font-mono">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
