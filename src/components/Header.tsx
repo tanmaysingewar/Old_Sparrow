@@ -101,7 +101,7 @@ export default function Header({
                 const currentSearchParams = new URLSearchParams(
                   window.location.search
                 );
-                document.title = "Better Index";
+                document.title = "Old Sparrow";
                 currentSearchParams.delete("chatId");
                 currentSearchParams.set("new", "true");
                 window.history.pushState(

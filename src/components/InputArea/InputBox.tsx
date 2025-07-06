@@ -160,7 +160,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
       // redirect to the chat page
       const currentSearchParams = new URLSearchParams(window.location.search);
 
-      document.title = "New Chat" + " - Better Index";
+      document.title = "New Chat" + " - Old Sparrow";
       currentSearchParams.set("chatId", chatIdParam);
       currentSearchParams.delete("new");
       window.history.pushState({}, "", `/chat?${currentSearchParams}`);
