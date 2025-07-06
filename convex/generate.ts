@@ -327,6 +327,10 @@ export const generate = action({
       return null;
     }
 
+    if (args.userMessage.length > 1000) {
+      return null;
+    }
+
     // check if the chatId exists in the database and belongs to the user
     const chat = args.chatId
       ? await ctx.runQuery(internal.generate.getChat, {
