@@ -24,19 +24,23 @@ import { useCredits } from "@/store/creditStore";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useRouter } from "next/navigation";
 
 // 2. Use the SettingsProps interface and destructure 'user' from it
 export default function Settings() {
-  // const router = useRouter();
+  const router = useRouter();
   const [selected, setSelected] = useState("Account");
   const [coupon, setCoupon] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
-  const { user } = useUserStore();
-  const [logOutLading] = useState(false);
+  const { user, setUser } = useUserStore();
+  const [logOutLading, setLogOutLoading] = useState(false);
   const { theme, setTheme } = useTheme();
   const { credits } = useCredits();
   const applyCouponMutation = useMutation(api.coupon.applyCoupon);
+  const { signOut } = useAuthActions();
+
   useEffect(() => {
     // Placeholder logic: Set example values
     // TODO: Replace this with your actual logic to get these values
@@ -59,7 +63,30 @@ export default function Settings() {
     }
   }, []);
 
-  const handleLogout = async () => {};
+  const handleLogout = async () => {
+    try {
+      setLogOutLoading(true);
+
+      // Sign out from Convex Auth
+      await signOut();
+
+      // Clear user store
+      setUser(undefined);
+
+      // Clear localStorage
+      localStorage.removeItem("user-session-storage");
+
+      // Redirect to login page
+      router.push("/login");
+
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Error logging out");
+    } finally {
+      setLogOutLoading(false);
+    }
+  };
 
   const addCoupon = async () => {
     setCouponLoading(true);

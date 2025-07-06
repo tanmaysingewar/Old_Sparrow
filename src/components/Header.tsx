@@ -8,6 +8,7 @@ import {
   Sun,
   TextSearch,
   DollarSign,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -29,6 +30,11 @@ import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { Input } from "./ui/input";
 import { useCredits } from "@/store/creditStore";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { toast } from "sonner";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useRouter } from "next/navigation";
 
 interface Chat {
   id: string;
@@ -50,11 +56,54 @@ export default function Header({
 }) {
   const { theme, setTheme } = useTheme();
   const [openChatHistoryDrawer, setOpenChatHistoryDrawer] = useState(false);
-  const [logOutLading] = useState(false);
+  const [logOutLading, setLogOutLoading] = useState(false);
+  const [coupon, setCoupon] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
   const { credits } = useCredits();
-  const { user } = useUserStore();
+  const { user, setUser } = useUserStore();
+  const applyCouponMutation = useMutation(api.coupon.applyCoupon);
+  const { signOut } = useAuthActions();
+  const router = useRouter();
 
-  const handleLogout = async () => {};
+  const handleLogout = async () => {
+    try {
+      setLogOutLoading(true);
+
+      // Sign out from Convex Auth
+      await signOut();
+
+      // Clear user store
+      setUser(undefined);
+
+      // Clear localStorage
+      localStorage.removeItem("user-session-storage");
+
+      // Redirect to login page
+      router.push("/login");
+
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Error logging out");
+    } finally {
+      setLogOutLoading(false);
+    }
+  };
+
+  const addCoupon = async () => {
+    setCouponLoading(true);
+    setCouponError("");
+    const result = await applyCouponMutation({ coupon: coupon });
+    if (!result) {
+      setCouponError("Invalid coupon");
+    } else {
+      toast.success("Coupon added");
+      setCoupon("");
+      setCouponError("");
+    }
+    setCouponLoading(false);
+  };
 
   useEffect(() => {
     // Placeholder logic: Set example values
@@ -282,11 +331,30 @@ export default function Header({
                               placeholder="Enter coupon code"
                               className="w-full border border-neutral-200 dark:border-neutral-700"
                               type="text"
+                              value={coupon}
+                              onChange={(e) => {
+                                setCoupon(e.target.value);
+                                setCouponError("");
+                              }}
                             />
-                            <Button variant="default" className="w-fit">
-                              Add
+                            <Button
+                              variant="default"
+                              className="w-fit"
+                              onClick={addCoupon}
+                              disabled={couponLoading}
+                            >
+                              {couponLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                "Add"
+                              )}
                             </Button>
                           </div>
+                          {couponError && (
+                            <p className="text-xs text-red-500 dark:text-red-400 mt-1 text-left">
+                              {couponError}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <Button
