@@ -254,7 +254,7 @@ export default function ChatHistoryDesktop({
           )}
         </div>
       </div>
-      <div className="flex flex-col border-t border-neutral-200 dark:border-[#323233] ">
+      <div className="flex flex-col border-t border-neutral-200 dark:border-[#323233]">
         <div
           className="flex items-center gap-2 p-3 mx-2 mb-0 mt-0  rounded-md cursor-pointer"
           onClick={() => {

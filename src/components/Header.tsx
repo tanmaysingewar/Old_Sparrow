@@ -7,6 +7,7 @@ import {
   SquarePen,
   Sun,
   TextSearch,
+  DollarSign,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,6 +27,7 @@ import { useUserStore } from "@/store/userStore";
 import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
+import { Input } from "./ui/input";
 
 interface Chat {
   id: string;
@@ -235,6 +237,52 @@ export default function Header({
                             >
                               <Moon className="w-4 h-4" />
                             </motion.div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 px-0 py-4 mt-2 w-[320px]">
+                        <div className="flex flex-row items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-full bg-neutral-200 dark:bg-[#323233]">
+                              <DollarSign
+                                size={14}
+                                className="text-neutral-600 dark:text-neutral-400"
+                              />
+                            </div>
+                            <div className="flex flex-col">
+                              <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                Credits
+                              </p>
+                              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                750 / 1000 remaining
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-white dark:bg-[#323233] px-2 py-1 rounded-full">
+                            75%
+                          </div>
+                        </div>
+                        <div className="w-full">
+                          <div className="w-full h-[5px] bg-neutral-200 dark:bg-[#323233] rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-neutral-700 to-neutral-900 dark:from-neutral-300 dark:to-neutral-400 rounded-full transition-all duration-500 ease-out shadow-sm"
+                              style={{ width: "75%" }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400 text-left mt-2">
+                            Add credits through coupon code
+                          </p>
+                          <div className="flex flex-row items-center justify-between gap-2 mt-1">
+                            <Input
+                              placeholder="Enter coupon code"
+                              className="w-full border border-neutral-200 dark:border-neutral-700"
+                              type="text"
+                            />
+                            <Button variant="default" className="w-fit">
+                              Add
+                            </Button>
                           </div>
                         </div>
                       </div>
