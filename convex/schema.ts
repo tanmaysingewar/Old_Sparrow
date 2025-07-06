@@ -6,6 +6,32 @@ export default defineSchema({
   // Auth tables required for Convex Auth
   ...authTables,
 
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    credits: v.optional(v.number()),
+    couponUsed: v.optional(
+      v.array(
+        v.object({
+          coupon: v.id("coupons"),
+          usedAt: v.number(),
+          amount: v.number(),
+        })
+      )
+    ),
+  }).index("email", ["email"]),
+
+  coupons: defineTable({
+    code: v.string(),
+    amount: v.number(),
+    expiresAt: v.number(),
+  }),
+
   // Chat tables
   chats: defineTable({
     customChatId: v.string(), // Custom chat identifier

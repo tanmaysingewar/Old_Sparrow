@@ -28,6 +28,7 @@ import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { Input } from "./ui/input";
+import { useCredits } from "@/store/creditStore";
 
 interface Chat {
   id: string;
@@ -50,7 +51,7 @@ export default function Header({
   const { theme, setTheme } = useTheme();
   const [openChatHistoryDrawer, setOpenChatHistoryDrawer] = useState(false);
   const [logOutLading] = useState(false);
-
+  const { credits } = useCredits();
   const { user } = useUserStore();
 
   const handleLogout = async () => {};
@@ -254,19 +255,21 @@ export default function Header({
                                 Credits
                               </p>
                               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                750 / 1000 remaining
+                                {credits ? credits.credits : 0} / 1000 remaining
                               </p>
                             </div>
                           </div>
                           <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-white dark:bg-[#323233] px-2 py-1 rounded-full">
-                            75%
+                            Used {credits ? 100 - credits.credits : 0}%
                           </div>
                         </div>
                         <div className="w-full">
                           <div className="w-full h-[5px] bg-neutral-200 dark:bg-[#323233] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-neutral-700 to-neutral-900 dark:from-neutral-300 dark:to-neutral-400 rounded-full transition-all duration-500 ease-out shadow-sm"
-                              style={{ width: "75%" }}
+                              style={{
+                                width: `${credits ? 100 - credits.credits : 0}%`,
+                              }}
                             />
                           </div>
                         </div>

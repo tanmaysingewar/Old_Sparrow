@@ -17,6 +17,7 @@ import { useUserStore } from "@/store/userStore";
 import { saveLocalMessages, getLocalMessages } from "@/store/saveMessages";
 import { Sidebar } from "lucide-react";
 import { useUserChats } from "@/store/userChats";
+import { useCredits } from "@/store/creditStore";
 
 interface Chat {
   id: string;
@@ -52,6 +53,7 @@ export default function ChatPage() {
     api.messages.get,
     chatId ? { chatId: chatId } : "skip"
   );
+  const credits = useQuery(api.coupon.getUserCredits);
   const getChats = useQuery(api.chats.get);
   const [chats, setChats] = useState<Chat[]>([]);
   const [chatLoadings, setChatLoadings] = useState(true);
@@ -160,6 +162,14 @@ export default function ChatPage() {
       }
     }
   }, [getChats]);
+
+  useEffect(() => {
+    if (credits !== null) {
+      useCredits.setState({ credits: { credits: credits || 0 } });
+    } else {
+      useCredits.setState({ credits: { credits: 0 } });
+    }
+  }, [credits]);
 
   return (
     <div

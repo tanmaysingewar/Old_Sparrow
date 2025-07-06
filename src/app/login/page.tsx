@@ -6,6 +6,7 @@ import {
   Unauthenticated,
   AuthLoading,
   useQuery,
+  useMutation,
 } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -19,10 +20,27 @@ const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
 });
 
+// Custom hook to ensure user has default credits
+function useEnsureUserCredits() {
+  const currentUser = useQuery(api.auth.getCurrentUser);
+  const ensureCredits = useMutation(api.coupon.ensureUserHasCredits);
+
+  useEffect(() => {
+    if (
+      currentUser &&
+      (currentUser.credits === undefined || currentUser.credits === null)
+    ) {
+      ensureCredits();
+    }
+  }, [currentUser, ensureCredits]);
+
+  return currentUser;
+}
+
 export default function LoginPage() {
   const { signIn } = useAuthActions();
   const { setUser } = useUserStore();
-  const currentUser = useQuery(api.auth.getCurrentUser);
+  const currentUser = useEnsureUserCredits(); // Use our custom hook
 
   useEffect(() => {
     if (currentUser) {
@@ -34,6 +52,8 @@ export default function LoginPage() {
         createdAt: new Date(currentUser._creationTime),
         updatedAt: new Date(currentUser._creationTime),
         image: currentUser.image || "",
+        isAnonymous: currentUser.isAnonymous || false,
+        credits: currentUser.credits || 0,
       });
     }
   }, [currentUser, setUser]);

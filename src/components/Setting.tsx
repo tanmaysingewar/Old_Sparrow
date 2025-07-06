@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   DollarSign,
+  Loader2,
   LogOutIcon,
   Monitor,
   Moon,
@@ -19,14 +20,23 @@ import Default from "@/assets/default.png";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { Input } from "./ui/input";
+import { useCredits } from "@/store/creditStore";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { toast } from "sonner";
 
 // 2. Use the SettingsProps interface and destructure 'user' from it
 export default function Settings() {
   // const router = useRouter();
   const [selected, setSelected] = useState("Account");
+  const [coupon, setCoupon] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
   const { user } = useUserStore();
   const [logOutLading] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { credits } = useCredits();
+  const applyCouponMutation = useMutation(api.coupon.applyCoupon);
   useEffect(() => {
     // Placeholder logic: Set example values
     // TODO: Replace this with your actual logic to get these values
@@ -50,6 +60,20 @@ export default function Settings() {
   }, []);
 
   const handleLogout = async () => {};
+
+  const addCoupon = async () => {
+    setCouponLoading(true);
+    setCouponError("");
+    const result = await applyCouponMutation({ coupon: coupon });
+    if (!result) {
+      setCouponError("Invalid coupon");
+    } else {
+      toast.success("Coupon added");
+      setCoupon("");
+      setCouponError("");
+    }
+    setCouponLoading(false);
+  };
 
   return (
     <div className=" flex flex-col">
@@ -179,19 +203,21 @@ export default function Settings() {
                         Credits
                       </p>
                       <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        750 / 1000 remaining
+                        {credits ? credits.credits : 0} credits remaining
                       </p>
                     </div>
                   </div>
-                  <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-white dark:bg-[#323233] px-2 py-1 rounded-full">
-                    75%
+                  <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-200 dark:bg-[#323233] px-2 py-1 rounded-full">
+                    Used {credits ? 100 - credits.credits : 0}%
                   </div>
                 </div>
                 <div className="w-full">
                   <div className="w-full h-[5px] bg-neutral-200 dark:bg-[#323233] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-neutral-700 to-neutral-900 dark:from-neutral-300 dark:to-neutral-400 rounded-full transition-all duration-500 ease-out shadow-sm"
-                      style={{ width: "75%" }}
+                      style={{
+                        width: `${credits ? 100 - credits.credits : 0}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -204,11 +230,30 @@ export default function Settings() {
                       placeholder="Enter coupon code"
                       className="w-full border border-neutral-200 dark:border-neutral-700"
                       type="text"
+                      value={coupon}
+                      onChange={(e) => {
+                        setCoupon(e.target.value);
+                        setCouponError("");
+                      }}
                     />
-                    <Button variant="default" className="w-fit">
-                      Add
+                    <Button
+                      variant="default"
+                      className="w-fit"
+                      onClick={addCoupon}
+                      disabled={couponLoading}
+                    >
+                      {couponLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Add"
+                      )}
                     </Button>
                   </div>
+                  {couponError && (
+                    <p className="text-xs text-red-500 dark:text-red-400 mt-1 text-left">
+                      {couponError}
+                    </p>
+                  )}
                 </div>
               </div>
               <Button

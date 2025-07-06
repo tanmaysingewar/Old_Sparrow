@@ -11,6 +11,7 @@ interface User {
   updatedAt?: Date;
   image?: string | null | undefined | undefined;
   isAnonymous?: boolean | null | undefined;
+  credits?: number;
 }
 
 interface UserState {

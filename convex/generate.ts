@@ -253,6 +253,11 @@ const handleInitialBotResponse = async (
     initialBotResponse += chunkContent;
   }
 
+  // reduce the credits
+  await ctx.runMutation(api.coupon.useCredits, {
+    amount: 5,
+  });
+
   // get and remove the json object from the initial bot response
   const jsonObject = initialBotResponse.match(
     /```personal_info\n{[\s\S]*?}\n```/g
@@ -370,6 +375,24 @@ export const generate = action({
         });
       });
       formattedPreviousMessages.reverse();
+    }
+
+    // check if the user has enough credits
+    const userCredits = await ctx.runQuery(api.coupon.getUserCredits, {});
+    if (userCredits === null || userCredits < 50) {
+      // TODO: Send the user a message that they have insufficient credits
+      await ctx.runMutation(internal.generate.insertMessage, {
+        chatId: chatId,
+        userMessage: args.userMessage,
+        botResponses: [
+          {
+            response:
+              "I'm sorry, but you don't have enough credits to use this service. Please add more credits to your account.",
+            researchItems: [],
+          },
+        ],
+      });
+      return;
     }
 
     // ------------ Function to handle the initial bot response -------------------------
@@ -558,6 +581,11 @@ export const generate = action({
       await ctx.runMutation(internal.generate.updateChatTitle, {
         customChatId: chatId,
         title: "Final Response Generated",
+      });
+
+      // reduce the credits
+      await ctx.runMutation(api.coupon.useCredits, {
+        amount: 60,
       });
 
       // TODO: Send the final response to the user
