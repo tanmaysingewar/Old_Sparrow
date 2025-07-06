@@ -149,12 +149,12 @@ export default function ChatHistoryDesktop({
       >
         <p className="text-[14px] font-semibold flex flex-row items-center gap-2">
           New Task{" "}
-          <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
+          {/* <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
             ⌘
           </span>
           <span className="text-xs bg-neutral-200 dark:bg-[#3a3a3b] rounded p-1 px-2 text-neutral-500 dark:text-neutral-400">
             K
-          </span>
+          </span> */}
         </p>
       </Button>
       <div className="flex-shrink-0 text-center mt-5">
