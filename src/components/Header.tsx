@@ -10,7 +10,7 @@ import {
   DollarSign,
   Loader2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Drawer,
@@ -104,29 +104,6 @@ export default function Header({
     }
     setCouponLoading(false);
   };
-
-  useEffect(() => {
-    // Placeholder logic: Set example values
-    // TODO: Replace this with your actual logic to get these values
-    // Maybe fetch from an API, read from Zustand store, or parse from local storage
-    const storedRateLimit = localStorage.getItem("userRateLimit"); // Example: assuming this stores the *total* limit like "20"
-    if (storedRateLimit) {
-      const remainingLimit = parseInt(storedRateLimit, 10);
-      if (!isNaN(remainingLimit)) {
-      } else {
-        console.error(
-          "Could not parse totalLimit from localStorage:",
-          storedRateLimit
-        );
-        // Set defaults if parsing fails
-      }
-    } else {
-      // Set defaults if nothing in local storage
-      console.warn(
-        "userRateLimit not found in localStorage. Using default values."
-      );
-    }
-  }, []);
 
   return (
     <div className="w-full block">
@@ -291,7 +268,7 @@ export default function Header({
                         </div>
                       </div>
                       <div className="flex flex-col gap-3 px-0 py-4 mt-2 w-[320px]">
-                        <div className="flex flex-row items-center justify-between">
+                        <div className="flex flex-row items-center justify-between bg-neutral-100 dark:bg-neutral-800 rounded-lg p-2">
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-full bg-neutral-200 dark:bg-[#323233]">
                               <DollarSign
@@ -304,22 +281,12 @@ export default function Header({
                                 Credits
                               </p>
                               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                {credits ? credits.credits : 0} / 1000 remaining
+                                Default 100 credits
                               </p>
                             </div>
                           </div>
-                          <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-white dark:bg-[#323233] px-2 py-1 rounded-full">
-                            Used {credits ? 100 - credits.credits : 0}%
-                          </div>
-                        </div>
-                        <div className="w-full">
-                          <div className="w-full h-[5px] bg-neutral-200 dark:bg-[#323233] rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-neutral-700 to-neutral-900 dark:from-neutral-300 dark:to-neutral-400 rounded-full transition-all duration-500 ease-out shadow-sm"
-                              style={{
-                                width: `${credits ? 100 - credits.credits : 0}%`,
-                              }}
-                            />
+                          <div className="text-xs font-medium text-neutral-600 dark:text-neutral-300 bg-neutral-200 dark:bg-[#323233] px-3 py-2 rounded-full">
+                            {credits.credits}
                           </div>
                         </div>
                         <div>

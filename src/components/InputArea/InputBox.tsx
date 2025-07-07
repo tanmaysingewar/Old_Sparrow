@@ -371,6 +371,12 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(function InputBox(
           </div>
         </div>
       </div>
+      <div className="flex justify-center items-center mt-2 px-5 text-center">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          This is the <span className="font-bold">public beta</span> version of
+          Old Sparrow. We are working on a lot of features to make it better.
+        </p>
+      </div>
     </div>
   );
 });

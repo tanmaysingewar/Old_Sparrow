@@ -204,6 +204,8 @@ ANALYSIS GUIDELINES:
 - If specific information is not mentioned in any document, clearly state "Not mentioned in the policy document"
 - Quote relevant clauses or sections when providing answers
 - Be thorough and comprehensive in your analysis
+- Start the response with title "Analysis of" the policy names and then start the analysis directly
+- Do not start the response with "Here is the analysis of the policy"
 
 ANSWER FORMAT REQUIREMENTS:
 
@@ -339,7 +341,7 @@ export const comparisonReport = (htmlContent: string) => {
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: #007bff;
+                background: #000;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -349,76 +351,80 @@ export const comparisonReport = (htmlContent: string) => {
                 z-index: 1000;
             }
             .print-button:hover {
-                background: #0056b3;
+                background: #333;
             }
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #000;
+            background-color: #fff;
         }
         
         h1, h2, h3, h4, h5, h6 {
-            color: #2c3e50;
+            color: #000;
             margin-top: 2em;
             margin-bottom: 0.5em;
         }
         
-        h1 { font-size: 2.2em; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        h2 { font-size: 1.8em; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }
+        h1 { font-size: 2.2em; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid #333; padding-bottom: 5px; }
         h3 { font-size: 1.4em; }
         
         table {
             border-collapse: collapse;
             width: 100%;
             margin: 20px 0;
-            border: 1px solid #ddd;
+            border: 1px solid #000;
         }
         
         th, td {
-            border: 1px solid #ddd;
+            border: 1px solid #000;
             padding: 12px;
             text-align: left;
         }
         
         th {
-            background-color: #f8f9fa;
+            background-color: #cccccc;
             font-weight: bold;
-            color: #2c3e50;
+            color: #000;
         }
         
         tr:nth-child(even) {
-            background-color: #f9f9f9;
+            background-color: #f5f5f5;
         }
         
         blockquote {
-            border-left: 4px solid #3498db;
+            border-left: 4px solid #000;
             margin: 20px 0;
             padding: 15px 20px;
-            background-color: #f8f9fa;
+            background-color: #f5f5f5;
             font-style: italic;
         }
         
         code {
-            background-color: #f4f4f4;
+            background-color: #f0f0f0;
             padding: 2px 6px;
             border-radius: 3px;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 0.9em;
+            border: 1px solid #ccc;
         }
         
         pre {
-            background-color: #f4f4f4;
+            background-color: #f0f0f0;
             padding: 15px;
             border-radius: 5px;
             overflow-x: auto;
-            border-left: 3px solid #3498db;
+            border-left: 3px solid #000;
+            border: 1px solid #ccc;
         }
         
         pre code {
             background: none;
             padding: 0;
+            border: none;
         }
         
         ul, ol {
@@ -431,26 +437,27 @@ export const comparisonReport = (htmlContent: string) => {
         }
         
         a {
-            color: #3498db;
-            text-decoration: none;
+            color: #000;
+            text-decoration: underline;
         }
         
         a:hover {
-            text-decoration: underline;
+            text-decoration: none;
         }
         
         .report-header {
             text-align: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #000;
             color: white;
             border-radius: 10px;
+            border: 2px solid #000;
         }
         
         .generated-date {
             text-align: right;
-            color: #7f8c8d;
+            color: #666;
             font-size: 0.9em;
             margin-bottom: 20px;
         }
@@ -458,9 +465,9 @@ export const comparisonReport = (htmlContent: string) => {
         .footer {
             margin-top: 40px;
             padding-top: 20px;
-            border-top: 1px solid #bdc3c7;
+            border-top: 1px solid #000;
             text-align: center;
-            color: #7f8c8d;
+            color: #666;
             font-size: 0.9em;
         }
     </style>
@@ -470,7 +477,7 @@ export const comparisonReport = (htmlContent: string) => {
     
     <div class="report-header no-print">
         <h1 style="margin: 0; color: white; border: none;">Policy Comparison Report</h1>
-        <p style="margin: 10px 0 0 0; opacity: 0.9;">Generated by BetterIndex</p>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Generated by Old Sparrow</p>
     </div>
     
     <div class="generated-date">
@@ -488,7 +495,7 @@ export const comparisonReport = (htmlContent: string) => {
     </div>
     
     <div class="footer">
-        <p>This report was generated by BetterIndex - Your AI-powered insurance comparison tool</p>
+        <p>This report was generated by Old Sparrow - Your AI-powered insurance comparison tool</p>
     </div>
     
     <script>
