@@ -39,8 +39,8 @@ export default function RenderPolicies({
         // Always allow deselection
         return prev.filter((name) => name !== policyName);
       } else {
-        // Only allow selection if we haven't reached the limit of 5
-        if (prev.length < 5) {
+        // Only allow selection if we haven't reached the limit of 3
+        if (prev.length < 3) {
           return [...prev, policyName];
         }
         // If limit reached, don't add the new policy
@@ -105,8 +105,8 @@ export default function RenderPolicies({
       className={`flex flex-col bg-transparent rounded-sm ${poppins.className}`}
     >
       <span className="text-neutral-700 text-sm dark:text-neutral-300">
-        Select up to 5 policies in which you are interested (
-        {selectedPolicies.length}/5 selected)
+        Select up to 3 policies in which you are interested (
+        {selectedPolicies.length}/3 selected)
       </span>
       <div className="flex flex-row flex-wrap select-none mt-2">
         {policies.map(
