@@ -1,20 +1,32 @@
-# BetterIndex - Multi-LLM Chat Application
+# Old Sparrow - Health Insurance AI Assistant
 
-**Description:** Chat with multiple AI models in one simple interface.
+**Description:** Your intelligent health insurance advisor that helps you understand policies, compare coverage options, and make informed decisions about your health insurance needs.
 
 ## Features
 
-### 🤖 Multi-LLM Support
+### 🏥 Health Insurance Analysis
 
-- **Multiple AI Models**: Support for various Large Language Models
-- **Model Switching**: Easily switch between different LLMs mid-conversation
-- **Unified Interface**: Single chat interface for all supported models
+- **Policy Document Processing**: Upload and analyze insurance policy documents (PDF support)
+- **Intelligent Q&A**: Ask questions about your health insurance coverage and get clear, personalized answers
+- **Policy Comparison**: Compare multiple insurance policies side-by-side with detailed analysis
 
-### 🗨️ Chat Interface
+### 🤖 AI-Powered Assistant
 
-- Real-time conversations with multiple LLMs
-- Clean, modern UI with dark/light mode support
-- Responsive design for desktop and mobile
+- **Personalized Recommendations**: Get tailored insurance advice based on your age, city, and health profile
+- **Expert Analysis**: Comprehensive policy analysis covering coverage, limitations, waiting periods, and more
+- **Natural Conversation**: Chat with Old Sparrow, your friendly health insurance advisor
+
+### 💬 Interactive Chat Interface
+
+- **Real-time Conversations**: Seamless chat experience with instant responses
+- **User Profiling**: Collects essential information (age, city, pre-existing conditions, gender) for personalized advice
+- **Chat History**: Track your conversations and insurance research over time
+
+### 📊 Policy Comparison & Analysis
+
+- **Side-by-Side Comparison**: Compare multiple policies with detailed breakdowns
+- **Coverage Analysis**: Understand sum assured, waiting periods, exclusions, and benefits
+- **Cost Transparency**: Clear explanations of premium structures and value propositions
 
 ## Getting Started
 
@@ -22,6 +34,8 @@
 
 - Node.js 18+
 - npm, yarn, pnpm, or bun
+- A Convex account (free tier available)
+- OpenRouter API access
 
 ### Installation
 
@@ -29,6 +43,7 @@
 
 ```bash
 git clone <repository-url>
+cd old-sparrow
 ```
 
 2. Install dependencies:
@@ -45,42 +60,52 @@ bun install
 
 3. Set up environment variables:
 
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with the following required environment variables:
+Create a `.env.local` file in the root directory with the following variables:
 
 ```env
-GOOGLE_CLIENT_ID=                       # Google OAuth client ID for authentication
-GOOGLE_CLIENT_SECRET=                   # Google OAuth client secret
-BETTER_AUTH_SECRET=                     # Secret key for BetterAuth
-DATABASE_URL=                           # Database connection URL
-BETTER_AUTH_URL=http://localhost:3000   # Base URL for authentication (update for production)
-TAVILY_API_KEY=                         # Tavily API key for web search functionality
-UPSTASH_REDIS_REST_URL=                 # Upstash Redis REST URL for caching
-UPSTASH_REDIS_REST_TOKEN=               # Upstash Redis REST token
-UPLOADTHING_TOKEN=                      # Upload thing Token
-OPENAI_API_KEY=                         # Open AI API key
-OPENROUTER_API_KEY=                     # Open Router API Key
+# Required Environment Variables
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-project-url.convex.cloud
+CONVEX_SITE_URL=https://your-convex-project-url.convex.site
+OPENROUTER_API_KEY=your-openrouter-api-key
+
+# Optional Environment Variables
+DEFAULT_USER_CREDITS=100  # Default credits for new users
 ```
 
-#### Getting Google OAuth Credentials
+#### Getting Your API Keys
 
-To obtain your Google OAuth credentials:
+**Convex Setup:**
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Navigate to **APIs & Services** > **Credentials**
-4. Click **Create Credentials** > **OAuth client ID**
-5. Configure the OAuth consent screen if prompted
-6. Choose **Web application** as the application type
-7. Add authorized redirect URIs:
-   - For development: `http://localhost:3000/api/auth/callback/google`
-   - For production: `https://your-domain.com/api/auth/callback/google`
-8. Copy the **Client ID** and **Client Secret** to your `.env.local` file
+1. Go to [Convex Dashboard](https://dashboard.convex.dev/)
+2. Create a new project
+3. Copy your deployment URL to `NEXT_PUBLIC_CONVEX_URL`
+4. Copy your site URL to `CONVEX_SITE_URL`
 
-9. Run the development server:
+**OpenRouter API Key:**
+
+1. Visit [OpenRouter](https://openrouter.ai/)
+2. Create an account and get your API key
+3. Add it to `OPENROUTER_API_KEY`
+
+**Google OAuth Setup (for authentication):**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add authorized redirect URIs:
+   - Development: `http://localhost:3000`
+   - Production: `https://your-domain.com`
+6. Configure OAuth consent screen
+7. The app will handle OAuth through Convex Auth
+
+8. Deploy your Convex backend:
+
+```bash
+npx convex dev
+```
+
+5. Run the development server:
 
 ```bash
 npm run dev
@@ -92,35 +117,143 @@ pnpm dev
 bun dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Technologies Used
+## How It Works
 
-- **Framework**: Next.js 14+ with App Router
+### 1. User Onboarding
+
+- Users sign in with Google OAuth
+- Old Sparrow collects essential information (age, city, health status, gender)
+- Each user gets default credits to start using the service
+
+### 2. Policy Analysis
+
+- Upload insurance policy documents (PDF format)
+- Ask specific questions about coverage, benefits, exclusions
+- Get detailed, easy-to-understand explanations
+
+### 3. Policy Comparison
+
+- Select multiple policies for comparison
+- Receive side-by-side analysis with recommendations
+- Understand which policy best fits your needs and budget
+
+### 4. Ongoing Support
+
+- Chat with Old Sparrow about insurance questions
+- Get personalized advice based on your profile
+- Track your insurance research and decisions
+
+## Technology Stack
+
+### Frontend
+
+- **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: Custom components with shadcn UI
+- **UI Components**: Radix UI primitives with custom components
 - **Icons**: Lucide React
-- **Auth**: Better Auth
-- **ORM**: Drizzle
-- **Database**: Postgres (NeonDB)
-- **SDK**: OpenAI SDK
-- **Storage Bucket**: Uploadthing
 - **State Management**: Zustand
-- **RateLimiter**: Upstash Redis
-- **Syntax highlighter**: React Syntax Highlighter
-- **Hosting**: Vercel
-- **React Compiler**: babel-plugin-react-compiler ^19
-- **Virtual List**: Tanstack React Virtual
-- **Web Search**: Tavily API
-- **LLM Provider**: Openrouter/OpenAI
+
+### Backend
+
+- **Database & Functions**: Convex (real-time database with serverless functions)
+- **Authentication**: Convex Auth with Google OAuth
+- **File Upload**: Uploadthing
+- **PDF Processing**: Multiple PDF parsing libraries
+
+### AI & LLM
+
+- **LLM Provider**: OpenRouter (access to multiple AI models)
+- **Primary Models**: Anthropic Claude, Google Gemini
+- **AI SDK**: OpenAI SDK for chat completions
+
+### Development & Deployment
+
+- **Runtime**: React 19 with React Compiler
+- **Analytics**: Vercel Analytics & Speed Insights
+- **Hosting**: Vercel (recommended)
+- **Package Manager**: Bun (preferred) or npm/yarn
+
+## Project Structure
+
+```
+old-sparrow/
+├── src/
+│   ├── app/                 # Next.js app router
+│   │   ├── chat/           # Chat interface
+│   │   ├── login/          # Authentication
+│   │   └── page.tsx        # Landing page
+│   ├── components/         # Reusable UI components
+│   ├── screens/            # Page-level components
+│   ├── store/              # Zustand state management
+│   └── lib/                # Utility functions
+├── convex/                 # Convex backend
+│   ├── auth.ts            # Authentication logic
+│   ├── chats.ts           # Chat management
+│   ├── coupon.ts          # Credits system
+│   ├── generate.ts        # AI response generation
+│   ├── pdfActions.ts      # PDF processing
+│   └── schema.ts          # Database schema
+└── public/                # Static assets
+```
+
+## Key Features Explained
+
+### Credit System
+
+- Users receive default credits upon signup
+- Credits are consumed for AI interactions
+- Coupon system for adding credits
+- Usage tracking and management
+
+### Policy Analysis Engine
+
+- Processes insurance policy PDFs
+- Extracts key information using AI
+- Provides structured analysis and comparisons
+- Supports multiple insurance providers
+
+### Intelligent Chat
+
+- Context-aware conversations
+- Personalized advice based on user profile
+- Maintains chat history
+- Supports file uploads and analysis
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+We welcome contributions to Old Sparrow! Here's how you can help:
 
-Sutra.im
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes**: Follow the existing code style and patterns
+4. **Test thoroughly**: Ensure your changes work correctly
+5. **Commit your changes**: `git commit -m 'Add amazing feature'`
+6. **Push to the branch**: `git push origin feature/amazing-feature`
+7. **Open a Pull Request**: Describe your changes and their benefits
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Use Tailwind CSS for styling
+- Maintain responsive design principles
+- Write clear, self-documenting code
+- Test your changes thoroughly
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+If you encounter any issues or have questions:
+
+1. Check the [Issues](https://github.com/your-username/old-sparrow/issues) page
+2. Create a new issue with detailed information
+3. Contact the development team
+
+---
+
+**Old Sparrow** - Making health insurance simple and understandable for everyone.
